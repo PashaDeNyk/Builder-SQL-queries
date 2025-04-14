@@ -4,6 +4,7 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import fs from 'fs';
 import path from 'path';
+import tailwindcss from "@tailwindcss/vite";
 import child_process from 'child_process';
 import { env } from 'process';
 import React from 'react';
@@ -40,7 +41,7 @@ const target = env.ASPNETCORE_HTTPS_PORT ? `https://localhost:${env.ASPNETCORE_H
 
 // https://vitejs.dev/config/
 export default defineConfig({
-    plugins: [react()],
+    plugins: [react(), tailwindcss()],
     optimizeDeps: {
         include: ['react-dnd', 'react-dnd-html5-backend'],
     },
