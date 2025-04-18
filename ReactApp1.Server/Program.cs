@@ -7,11 +7,22 @@ namespace ReactApp1.Server
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            // Add services to the container.
-
+            
+            //Поддержка контроллеров
             builder.Services.AddControllers();
   
             builder.Services.AddOpenApi();
+
+            builder.Services.AddCors(options =>
+            {
+                options.AddPolicy("ReactPolicy", builder =>
+                {
+                    builder.WithOrigins("https://localhost:57112") // Ваш React-порт
+                           .AllowAnyHeader()
+                           .AllowAnyMethod()
+                           .AllowCredentials(); // Если используете куки/авторизацию
+                });
+            });
 
             var app = builder.Build();
 
@@ -24,11 +35,11 @@ namespace ReactApp1.Server
                 app.MapOpenApi();
             }
 
-            app.UseHttpsRedirection();
-
+            //app.UseHttpsRedirection();
+            app.UseCors("ReactPolicy");
             app.UseAuthorization();
 
-
+            //Перенаправляет действия в контроллеры
             app.MapControllers();
 
             app.MapFallbackToFile("/index.html");

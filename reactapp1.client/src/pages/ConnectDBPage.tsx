@@ -5,10 +5,10 @@ import DBConnectionField from "../components/DBConnectionField";
 
 interface DBConfig {
   host: string;
-  port: string;
+  port: number;
+  database: string;
   username: string;
   password: string;
-  database: string;
 }
 
 export default function ConnectDBPage() {
@@ -19,10 +19,11 @@ export default function ConnectDBPage() {
   } = useForm<DBConfig>();
 
   const { mutate, isPending, isError } = useMutation({
-    mutationFn: (config: DBConfig) => api.post("/database/connect", config),
+    mutationFn: (config: DBConfig) => api.post("/database/connect", config), //здесь собираются все поля
     onSuccess: () => {
-      // Переход к основной функциональности
-    },
+        console.log('succeed')
+      },
+      onError: (error) => { }
   });
 
   return (
@@ -47,7 +48,7 @@ export default function ConnectDBPage() {
           <DBConnectionField
             name="host"
             label="Хост"
-            register={register}
+            register={register} //строка подключения
             required
             error={errors.host}
           />
