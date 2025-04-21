@@ -7,7 +7,17 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+#node_modules
 node_modules
+node_modules/
+**/node_modules/*
+.npm
+.yarn-integrity
+.vite/
+
+# Vite-specific
+**/node_modules/.vite/
+**/.vite/deps
 package-lock.json
 dist
 dist-ssr

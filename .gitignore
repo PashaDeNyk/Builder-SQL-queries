@@ -363,5 +363,12 @@ MigrationBackup/
 FodyWeavers.xsd
 
 #node_modules
-node_modules.*
-node_modules
+node_modules/
+**/node_modules/*
+.npm
+.yarn-integrity
+.vite/
+
+# Vite-specific
+**/node_modules/.vite/
+**/.vite/deps
