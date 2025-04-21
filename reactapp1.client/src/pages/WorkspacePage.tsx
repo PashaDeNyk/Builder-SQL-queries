@@ -18,8 +18,10 @@ import { WorkspaceDropArea } from "../components/WorkspaceDropArea";
 import CalculatedFieldEditor from "../components/panels/CalculatedFieldEditor";
 import { CustomEdge } from "../components/CustomEdge";
 import JoinTypeModal from "../components/JoinTypeModal";
+import { fetchTables } from "../api/tables";
 
 const Workspace = () => {
+  const [availableTables, setAvailableTables] = useState<Table[]>([]);
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge[]>([]);
   const [joins, setJoins] = useState<Join[]>([]);
@@ -33,6 +35,22 @@ const Workspace = () => {
     visible: boolean;
     connection: Connection | null;
   }>({ visible: false, connection: null });
+    const [loading, setLoading] = useState(true);
+    useEffect(() => {
+        const loadTables = async () => {
+            try {
+                const tables = await fetchTables(); 
+                setAvailableTables(tables);
+            } catch (error) {
+                console.error("Error loading tables:", error);
+                // Обработка ошибки
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        loadTables();
+    }, []);
 
   const handleDropItem = (
     table: Table,
@@ -247,13 +265,18 @@ const Workspace = () => {
     );
 
     setQueryResult(result);
-  };
+    };
+
 
   const nodeTypes = useMemo(() => {
     return {
       tableNode: TableNode,
     };
   }, []);
+
+    if (loading) {
+        return <div>Loading tables...</div>;
+    }
 
   return (
     <DndProvider backend={HTML5Backend}>
@@ -266,7 +289,8 @@ const Workspace = () => {
       <div className="flex h-screen bg-gray-900">
         <Sidebar />
         <WorkspaceDropArea onDropItem={handleDropItem}>
-          <ReactFlow
+           <ReactFlow
+            className="h-1/2 !important"
             nodes={nodes}
             edges={edges}
             onNodesChange={onNodesChange}

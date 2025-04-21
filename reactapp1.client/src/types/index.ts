@@ -1,12 +1,12 @@
+export interface Column {
+    ColumnName: string;
+    ColumnType: string;
+};
+
 export type Table = {
   name: string;
   columns: Column[];
   data: Record<string, unknown>[];
-};
-
-export type Column = {
-  name: string;
-  type: string;
 };
 
 export type JoinType = "INNER" | "LEFT" | "RIGHT" | "FULL" | "CROSS";
