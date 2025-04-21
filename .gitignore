@@ -283,7 +283,7 @@ FakesAssemblies/
 
 # Node.js Tools for Visual Studio
 .ntvs_analysis.dat
-node_modules/
+
 
 # Visual Studio 6 build log
 *.plg
@@ -363,5 +363,12 @@ MigrationBackup/
 FodyWeavers.xsd
 
 #node_modules
-node_modules.*
-node_modules
+node_modules/
+**/node_modules/*
+.npm
+.yarn-integrity
+.vite/
+
+# Vite-specific
+**/node_modules/.vite/
+**/.vite/deps
