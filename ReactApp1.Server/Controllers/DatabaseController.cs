@@ -28,8 +28,8 @@ namespace ReactApp1.Server.Controllers
                     {
                         json += $"name:'{tName}',columns:[";
 
-                        List<string> columnTypeData = ReadColumnsType(connectionString, tName);
-
+                        List<string> columnTypeName = ReadColumnsType(connectionString, tName);
+                        List<string> typeData = new List<string>();
                         DataSet dataSet = new DataSet();
                         NpgsqlDataAdapter adapter = new NpgsqlDataAdapter($"select * from {tName}", connection);
                         adapter.Fill(dataSet, tName);
@@ -40,8 +40,9 @@ namespace ReactApp1.Server.Controllers
                             List<string> cName = new List<string>();//имена столбцов
                             foreach (DataColumn column in dt.Columns) // перебор всех столбцов
                             {
+                                typeData.Add(column.DataType.Name.ToString());
                                 cName.Add(column.ColumnName);
-                                json += "{" + $"name:'{column.ColumnName}',type:'{columnTypeData[counterTypeData]}'" + "},";
+                                json += "{" + $"name:'{column.ColumnName}',type:'{columnTypeName[counterTypeData]}'" + "},";
                                 counterTypeData++;
                             }
                             json += "],data:[";
@@ -54,23 +55,12 @@ namespace ReactApp1.Server.Controllers
                                 json += "{";
                                 foreach (object cell in cells)
                                 {
-                                    if (
-                                        columnTypeData[counterCName] == "bigserial" ||
-                                        columnTypeData[counterCName] == "bigint" ||
-                                        columnTypeData[counterCName] == "serial" || 
-                                        columnTypeData[counterCName] == "integer" ||
-                                        columnTypeData[counterCName] == "smallint" || 
-                                        columnTypeData[counterCName] == "decimal"|| 
-                                        columnTypeData[counterCName] == "numeric"|| 
-                                        columnTypeData[counterCName] == "real"|| 
-                                        columnTypeData[counterCName] == "money" ||
-                                        columnTypeData[counterCName] == "double precision" || 
-                                        columnTypeData[counterCName] == "smallserial" 
-                                            ) // попытка сделать проверку в зависимости от частоту использования
+                                    if (typeData[counterCName] == "String" || typeData[counterCName] =="Boolean" || typeData[counterCName] == "DateTime")
                                     {
-                                        json += $"{cName[counterCName]}:{cell}";
+                                        json += $"{cName[counterCName]}:'{cell}'";
+                                        
                                     }
-                                    else json += $"{cName[counterCName]}:'{cell}'";
+                                    else json += $"{cName[counterCName]}:{cell}";
 
                                     if (counter != countCells)
                                         json += ',';
@@ -88,7 +78,7 @@ namespace ReactApp1.Server.Controllers
                     Console.WriteLine();
                     json = JsonSerializer.Serialize(json);
                     Console.WriteLine(json);
-                    return Ok(new { Message = "Connection succeed" });
+                    return Ok(json);
                 }
             }
             catch (Exception e)
