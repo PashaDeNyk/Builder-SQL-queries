@@ -1,21 +1,29 @@
-// /src/components/WorkspaceDropArea.tsx
 import React from "react";
 import { useDrop } from "react-dnd";
+import { Table } from "../types";
 
 interface WorkspaceDropAreaProps {
-    onDropItem: (item: any, offset: { x: number; y: number } | null) => void;
+    onDropItem: (tables: Table[], offset: { x: number; y: number } | null) => void;
     children: React.ReactNode;
 }
 
-export const WorkspaceDropArea = ({
+export const WorkspaceDropArea: React.FC<WorkspaceDropAreaProps> = ({
     onDropItem,
     children,
-}: WorkspaceDropAreaProps) => {
+}) => {
     const [, dropRef] = useDrop(() => ({
         accept: "TABLE",
-        drop(item, monitor) {
+        drop: (item: { tables: Table[] }, monitor) => {
             const offset = monitor.getSourceClientOffset();
-            onDropItem(item, offset);
+
+            // Обрабатываем как массив таблиц
+            if (item.tables && Array.isArray(item.tables)) {
+                onDropItem(item.tables, offset);
+            }
+            // Для обратной совместимости с одиночными таблицами
+            else if (item.table) {
+                onDropItem([item.table], offset);
+            }
         },
     }));
 

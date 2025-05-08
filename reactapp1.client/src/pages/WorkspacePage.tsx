@@ -11,7 +11,7 @@ import ReactFlow, {
   Edge,
 } from "reactflow";
 import "reactflow/dist/style.css";
-import { CalculatedField, Condition, Join, JoinType, Table } from "../types";
+import { ApiJoinRequest, ApiSelectionRequest, CalculatedField, Condition, Join, JoinType, Table } from "../types";
 import { TableNode } from "../components/nodes/TableNode";
 import Sidebar from "../components/panels/Sidebar";
 import { WorkspaceDropArea } from "../components/WorkspaceDropArea";
@@ -21,6 +21,10 @@ import JoinTypeModal from "../components/JoinTypeModal";
 import { fetchTables } from "../api/tables";
 
 const Workspace = () => {
+    const [lastQueryResult, setLastQueryResult] = useState<Record<string, unknown>[]>([]);
+    const [cachedQueries, setCachedQueries] = useState<{
+        [key: string]: Record<string, unknown>[];
+    }>({});
   const [availableTables, setAvailableTables] = useState<Table[]>([]);
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge[]>([]);
@@ -52,21 +56,40 @@ const Workspace = () => {
         loadTables();
     }, []);
 
-  const handleDropItem = (
-    table: Table,
-    offset: { x: number; y: number } | null
-  ) => {
-    if (table && offset) {
-      const newNode = {
-        id: table.name,
-        position: { x: offset.x - 300, y: offset.y - 100 },
-        data: table,
-        type: "tableNode",
-      };
+    const handleDropItem = useCallback(
+        (tables: Table[], offset: { x: number; y: number } | null) => {
+            if (!offset) return;
 
-      setNodes((nds: any) => nds.concat(newNode));
-    }
-  };
+            // Проверяем наличие существующих таблиц
+            const hasExistingTables = nodes.length > 0;
+
+            // Формируем запрос
+            const request: ApiSelectionRequest = {
+                isSingleSelect: !hasExistingTables && tables.length === 1,
+                isBulkSelect: hasExistingTables || tables.length > 1,
+                tables: [
+                    ...nodes.map(n => n.data.name), // существующие таблицы
+                    ...tables.map(t => t.name)      // новые таблицы
+                ]
+            };
+
+            console.log('Selection request:', request);
+
+            // Создаем узлы только для новых таблиц
+            const newNodes = tables.map((t, index) => ({
+                id: t.name,
+                position: {
+                    x: offset.x - 300 + index * 50,
+                    y: offset.y - 100 + index * 50
+                },
+                data: t,
+                type: "tableNode" as const,
+            }));
+
+            setNodes(nds => [...nds, ...newNodes]);
+        },
+        [setNodes, nodes]
+    );
 
   const deleteTables = (ids: string[]) => {
     // Удаляем узлы
@@ -121,128 +144,134 @@ const Workspace = () => {
     setJoinTypeModal({ visible: true, connection });
   }, []);
 
-  const confirmJoinType = (type: JoinType) => {
-    const conn = joinTypeModal.connection;
-    if (!conn?.source || !conn?.target) return;
+    // Workspace.tsx
+    const confirmJoinType = useCallback(async (type: JoinType) => {
+        const conn = joinTypeModal.connection;
+        if (!conn?.source || !conn?.target) return;
 
-    const [sourceTable, sourceColumn] = conn.source.split("|");
-    const [targetTable, targetColumn] = conn.target.split("|");
+        const [sourceTable, sourceColumn] = conn.source.split("|");
+        const [targetTable, targetColumn] = conn.target.split("|");
 
-    const sourceTableExists = nodes.some(
-      (n: any) => n.data.name === sourceTable
-    );
-    const targetTableExists = nodes.some(
-      (n: any) => n.data.name === targetTable
-    );
+        // Отправка данных о джойне на сервер
+        const joinRequest: ApiJoinRequest = {
+            isJoin: true,
+            joinType: type,
+            tables: [sourceTable, targetTable]
+        };
 
-    if (!sourceTableExists || !targetTableExists) {
-      alert("One of the tables doesn't exist in workspace");
-      return;
-    }
+        try {
+            // Здесь должен быть реальный API вызов
+            console.log('Join request:', joinRequest);
 
-    setJoins((prev) => [
-      ...prev,
-      {
-        leftTable: sourceTable,
-        leftColumn: sourceColumn,
-        rightTable: targetTable,
-        rightColumn: targetColumn,
-        type,
-      },
-    ]);
+            // Остальная логика обработки джойна
+            setJoins(prev => [...prev, {
+                leftTable: sourceTable,
+                leftColumn: sourceColumn,
+                rightTable: targetTable,
+                rightColumn: targetColumn,
+                type,
+            }]);
 
-    setEdges((eds) =>
-      addEdge(
-        {
-          ...conn,
-          data: { type },
-          type: "custom",
-        },
-        eds
-      )
-    );
-    setJoinTypeModal({ visible: false, connection: null });
+            setEdges(eds => addEdge({
+                ...conn,
+                data: { type },
+                type: "custom",
+            }, eds));
+        } catch (error) {
+            console.error('Join error:', error);
+            alert('Ошибка при создании соединения');
+        } finally {
+            setJoinTypeModal({ visible: false, connection: null });
+        }
+    }, [joinTypeModal.connection, setEdges, setJoins]);
+
+    const generateQuery = () => {
+        if (generatedQuery)
+            return generatedQuery;
+        else {
+            if (nodes.length === 0) {
+                setGeneratedQuery("-- Add tables to workspace --");
+                return "";
+            }
+
+            const tables = nodes.map((n: any) => n.data.name);
+
+            const fields = [
+                ...nodes.flatMap((n: any) =>
+                    n.data.columns.map((c: any) => `${n.data.name}.${c.name}`)
+                ),
+                ...calculatedFields.map((f) => `${f.expression} AS ${f.alias}`),
+            ];
+
+            const whereClause =
+                whereConditions.length > 0
+                    ? `WHERE ${whereConditions
+                        .map((c) => `${c.column} ${c.operator} ${c.value}`)
+                        .join(" AND ")}`
+                    : "";
+
+            if (joins.length === 0 && tables.length > 1) {
+                const fromClause = tables.reduce((acc, table, index) => {
+                    if (index === 0) return table;
+                    return `${acc} CROSS JOIN ${table}`;
+                }, "");
+
+                const query = `SELECT ${fields.join(
+                    ", "
+                )} FROM ${fromClause} ${whereClause}`
+                    .trim()
+                    .replace(/\s+/g, " ");
+
+                setGeneratedQuery(query);
+                return query;
+            }
+
+            if (joins.length > 0) {
+                let fromClause = "";
+                const usedTables = new Set<string>();
+
+                let rootTable = joins[0].leftTable;
+                usedTables.add(rootTable);
+                fromClause = rootTable;
+
+                for (const join of joins) {
+                    if (!usedTables.has(join.rightTable)) {
+                        fromClause += ` ${join.type} JOIN ${join.rightTable} ON ${join.leftTable}.${join.leftColumn} = ${join.rightTable}.${join.rightColumn}`;
+                        usedTables.add(join.rightTable);
+                    }
+                }
+
+                for (const table of tables) {
+                    if (!usedTables.has(table)) {
+                        fromClause += ` CROSS JOIN ${table}`;
+                        usedTables.add(table);
+                    }
+                }
+
+                const query = `SELECT ${fields.join(
+                    ", "
+                )} FROM ${fromClause} ${whereClause}`
+                    .trim()
+                    .replace(/\s+/g, " ");
+
+                setGeneratedQuery(query);
+                return query;
+            }
+
+            const query = `SELECT ${fields.join(", ")} FROM ${tables[0]} ${whereClause}`
+                .trim()
+                .replace(/\s+/g, " ");
+
+            setGeneratedQuery(query);
+            return query;
+        }
   };
 
-  const generateQuery = () => {
-    if (nodes.length === 0) {
-      setGeneratedQuery("-- Add tables to workspace --");
-      return "";
-    }
-
-    const tables = nodes.map((n: any) => n.data.name);
-
-    const fields = [
-      ...nodes.flatMap((n: any) =>
-        n.data.columns.map((c: any) => `${n.data.name}.${c.name}`)
-      ),
-      ...calculatedFields.map((f) => `${f.expression} AS ${f.alias}`),
-    ];
-
-    const whereClause =
-      whereConditions.length > 0
-        ? `WHERE ${whereConditions
-            .map((c) => `${c.column} ${c.operator} ${c.value}`)
-            .join(" AND ")}`
-        : "";
-
-    if (joins.length === 0 && tables.length > 1) {
-      const fromClause = tables.reduce((acc, table, index) => {
-        if (index === 0) return table;
-        return `${acc} CROSS JOIN ${table}`;
-      }, "");
-
-      const query = `SELECT ${fields.join(
-        ", "
-      )} FROM ${fromClause} ${whereClause}`
-        .trim()
-        .replace(/\s+/g, " ");
-
-      setGeneratedQuery(query);
-      return query;
-    }
-
-    if (joins.length > 0) {
-      let fromClause = "";
-      const usedTables = new Set<string>();
-
-      let rootTable = joins[0].leftTable;
-      usedTables.add(rootTable);
-      fromClause = rootTable;
-
-      for (const join of joins) {
-        if (!usedTables.has(join.rightTable)) {
-          fromClause += ` ${join.type} JOIN ${join.rightTable} ON ${join.leftTable}.${join.leftColumn} = ${join.rightTable}.${join.rightColumn}`;
-          usedTables.add(join.rightTable);
+    const executeQuery = () => {
+        if (lastQueryResult) {
+            setQueryResult(lastQueryResult);
+            return;
         }
-      }
-
-      for (const table of tables) {
-        if (!usedTables.has(table)) {
-          fromClause += ` CROSS JOIN ${table}`;
-          usedTables.add(table);
-        }
-      }
-
-      const query = `SELECT ${fields.join(
-        ", "
-      )} FROM ${fromClause} ${whereClause}`
-        .trim()
-        .replace(/\s+/g, " ");
-
-      setGeneratedQuery(query);
-      return query;
-    }
-
-    const query = `SELECT ${fields.join(", ")} FROM ${tables[0]} ${whereClause}`
-      .trim()
-      .replace(/\s+/g, " ");
-
-    setGeneratedQuery(query);
-    return query;
-  };
-
-  const executeQuery = () => {
     let result: Record<string, unknown>[] = [];
 
     if (nodes.length === 1) {

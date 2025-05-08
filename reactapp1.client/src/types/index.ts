@@ -29,3 +29,15 @@ export type Condition = {
   operator: string;
   value: string;
 };
+
+export type ApiSelectionRequest = {
+    isSingleSelect?: boolean;
+    isBulkSelect?: boolean;
+    tables: string[];
+};
+
+export type ApiJoinRequest = {
+    isJoin: true;
+    joinType: JoinType;
+    tables: string[];
+};
