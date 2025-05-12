@@ -8,7 +8,7 @@ namespace ReactApp1.Server.Controllers
     [Route("api/database")]
     public class ConnectDatabaseController : Controller
     {
-        [HttpPost("---")]
+        [HttpPost("connect")]
         public IActionResult Connect([FromBody] DBConfig config)
         {
             try
@@ -19,7 +19,7 @@ namespace ReactApp1.Server.Controllers
                     connection.Open();
                     connection.Close();
                 }
-                    return Ok();
+                return Ok();
             }
             catch (Exception e)
             {

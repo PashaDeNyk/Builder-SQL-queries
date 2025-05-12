@@ -10,8 +10,8 @@ namespace ReactApp1.Server.Controllers
     [Route("api/database")]
     public class DatabaseController : Controller
     {
-        [HttpPost("connect")]
-        public IActionResult Connect([FromBody] DBConfig config)
+        [HttpGet("read-database")]
+        public IActionResult ReadDatabase([FromBody] DBConfig config)
         {
             try
             {
