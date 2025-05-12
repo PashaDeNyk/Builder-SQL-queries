@@ -18,7 +18,7 @@ import { WorkspaceDropArea } from "../components/WorkspaceDropArea";
 import CalculatedFieldEditor from "../components/panels/CalculatedFieldEditor";
 import { CustomEdge } from "../components/CustomEdge";
 import JoinTypeModal from "../components/JoinTypeModal";
-import { fetchTables } from "../api/tables";
+import { QueryClient } from "@tanstack/react-query";
 
 const Workspace = () => {
     const [lastQueryResult, setLastQueryResult] = useState<Record<string, unknown>[]>([]);
@@ -41,19 +41,9 @@ const Workspace = () => {
   }>({ visible: false, connection: null });
     const [loading, setLoading] = useState(true);
     useEffect(() => {
-        const loadTables = async () => {
-            try {
-                const tables = await fetchTables(); 
-                setAvailableTables(tables);
-            } catch (error) {
-                console.error("Error loading tables:", error);
-                // Обработка ошибки
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        loadTables();
+        const queryClient = new QueryClient();
+        setAvailableTables(queryClient.getQueryData(["userTables"]));
+        setLoading(false);
     }, []);
 
     const handleDropItem = useCallback(
@@ -315,8 +305,8 @@ const Workspace = () => {
         onConfirm={confirmJoinType}
         onCancel={() => setJoinTypeModal({ visible: false, connection: null })}
       />
-      <div className="flex h-screen bg-gray-900">
-        <Sidebar />
+          <div className="flex h-screen bg-gray-900">
+              <Sidebar availableTables={availableTables} />
         <WorkspaceDropArea onDropItem={handleDropItem}>
            <ReactFlow
             className="h-1/2 !important"

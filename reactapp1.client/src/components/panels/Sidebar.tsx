@@ -3,7 +3,12 @@ import { mockDatabase } from "../../constants/Mock";
 import { Table } from "../../types";
 import DraggableTable from "../DraggableTable";
 
-const Sidebar = () => {
+interface SidebarProps {
+    availableTables: Table[];
+}
+
+const Sidebar = ({ availableTables }: SidebarProps) => {
+    const tables = availableTables ? availableTables : mockDatabase.tables;
     const [selectedTables, setSelectedTables] = useState<Table[]>([]);
 
     // Мемоизированные колбэки
@@ -29,7 +34,7 @@ const Sidebar = () => {
         <div className="w-64 p-4 bg-gray-800 border-r border-gray-700 overflow-y-auto">
             <h2 className="text-xl font-bold mb-4 text-blue-400">Tables</h2>
             <div className="space-y-2">
-                {mockDatabase.tables.map((table) => (
+                {tables.map((table) => (
                     <div
                         key={table.name}
                         onClick={() => handleTableClick(table)}

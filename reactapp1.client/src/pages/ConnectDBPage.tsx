@@ -1,7 +1,8 @@
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import api from "../api/client";
 import DBConnectionField from "../components/DBConnectionField";
+import { fetchTables } from "../api/tables";
 
 interface DBConfig {
   host: string;
@@ -16,14 +17,29 @@ export default function ConnectDBPage() {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<DBConfig>();
+    } = useForm<DBConfig>();
+
+
+
+    const loadTables = async () => {
+        try {
+            const tables = await fetchTables();
+            const queryClient = useQueryClient();
+            queryClient.setQueryData(["userTables"], tables);
+            console.log()
+        } catch (error) {
+            console.error("Error loading tables:", error);
+            // Обработка ошибки
+        }
+    };
 
   const { mutate, isPending, isError } = useMutation({
-    mutationFn: (config: DBConfig) => api.post("/database/connect", config), //здесь собираются все поля
-    onSuccess: () => {
-        console.log('succeed')
+    mutationFn: (config: DBConfig) => api.post("/database/connect", config),
+      onSuccess: async () => {
+          await loadTables();
+          console.log('succeed');
       },
-      onError: (error) => { }
+      onError: (error) => { console.error(error); }
   });
 
   return (
