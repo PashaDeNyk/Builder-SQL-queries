@@ -14,6 +14,7 @@ namespace ReactApp1.Server.Controllers
             try
             {
                 var connectionString = $"Host={config.Host};Port={config.Port};Database={config.Database};Username={config.Username};Password={config.Password}";
+                ConnectionString.connectionString = connectionString;
                 using (var connection = new NpgsqlConnection(connectionString))
                 {
                     connection.Open();

@@ -6,6 +6,7 @@ namespace ReactApp1.Server.DTO
     {
         [EmailAddress] public string Email;
         [DataType(DataType.Password)] public string Password;
+        [DataType(DataType.Password)] public string Password2;
 
     }
 }

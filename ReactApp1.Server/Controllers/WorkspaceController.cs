@@ -7,6 +7,13 @@
 //using System.Diagnostics.Metrics;
 //using System.Text.Json;
 
+///    public IActionResult PostUsers([FromBody] List<User> users)
+
+
+
+
+
+
 //namespace ReactApp1.Server.Controllers
 //{
 //    [ApiController]

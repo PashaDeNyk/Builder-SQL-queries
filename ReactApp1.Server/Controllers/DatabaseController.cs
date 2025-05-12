@@ -10,13 +10,15 @@ namespace ReactApp1.Server.Controllers
     [Route("api/database")]
     public class DatabaseController : Controller
     {
+        public string connstr = "";
         [HttpGet("read-database")]
-        public IActionResult ReadDatabase([FromBody] DBConfig config)
+        public IActionResult ReadDatabase()
         {
             try
             {
-                var connectionString = $"Host={config.Host};Port={config.Port};Database={config.Database};Username={config.Username};Password={config.Password}";
-
+                //DBConfig config;
+                //var connectionString = $"Host={config.Host};Port={config.Port};Database={config.Database};Username={config.Username};Password={config.Password}";
+                var connectionString = ConnectionString.connectionString;
 
                 using (var connection = new NpgsqlConnection(connectionString))
                 {
@@ -136,6 +138,11 @@ namespace ReactApp1.Server.Controllers
                 }
             }
 
+        }
+
+        public void setConnStr(string connStr2)
+        {
+            connstr = connStr2;
         }
     }
 }
