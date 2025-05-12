@@ -5,6 +5,7 @@
 //using static Microsoft.EntityFrameworkCore.DbLoggerCategory.Database;
 //using System.Data;
 //using System.Diagnostics.Metrics;
+//using System.Text.Json;
 
 //namespace ReactApp1.Server.Controllers
 //{
@@ -27,65 +28,67 @@
 //                connection.Open();
 //                string json = "tables:[{";
 
-
 //                List<TableInfo> tInfo = new List<TableInfo>();//временно LIST, позже исправить на постоянную основу
 
 //                foreach (var table in tInfo)//проходимся по всем полученным таблицам
 //                {
 //                    json += $"name:'{table.Name}',columns:[";
+
+//                    List<string> typeData = new List<string>();//Типы данных через c#
+
 //                    DataSet dataSet = new DataSet();
 //                    NpgsqlDataAdapter adapter = new NpgsqlDataAdapter($"select * from {table.Name}", connection);
 //                    adapter.Fill(dataSet, table.Name);
+
 //                    foreach (DataTable dt in dataSet.Tables)
 //                    {
 
 //                        List<string> cName = new List<string>();//имена столбцов
 //                        foreach (DataColumn column in dt.Columns) // перебор всех столбцов
 //                        {
+//                            typeData.Add(column.DataType.Name.ToString());
+//                            cName.Add(column.ColumnName);
 //                            json += "{" + $"name:'{column.ColumnName}'" + "},";
 //                        }
 //                        json += "],data:[";
 //                        foreach (DataRow row in dt.Rows) // перебор всех строк таблицы
 //                        {
+//                            int counterCName = 0;
+//                            int counter = 1;
 
 //                            var cells = row.ItemArray; // получаем все ячейки строки
-//                            int countCells = cells.Count();
 
 //                            json += "{";
 //                            foreach (object cell in cells)
 //                            {
-//                                if (
-//                                       columnTypeData[counterCName] == "bigserial" ||
-//                                       columnTypeData[counterCName] == "bigint" ||
-//                                       columnTypeData[counterCName] == "serial" ||
-//                                       columnTypeData[counterCName] == "integer" ||
-//                                       columnTypeData[counterCName] == "smallint" ||
-//                                       columnTypeData[counterCName] == "decimal" ||
-//                                       columnTypeData[counterCName] == "numeric" ||
-//                                       columnTypeData[counterCName] == "real" ||
-//                                       columnTypeData[counterCName] == "money" ||
-//                                       columnTypeData[counterCName] == "double precision" ||
-//                                       columnTypeData[counterCName] == "smallserial"
-//                                           ) // попытка сделать проверку в зависимости от частоту использования
+//                                if (typeData[counterCName] == "String" || typeData[counterCName] == "Boolean" || typeData[counterCName] == "DateTime")
 //                                {
-//                                    json += $"{cName[counterCName]}:{cell}";
-//                                }
-//                                else json += $"{cName[counterCName]}:'{cell}'";
+//                                    json += $"{cName[counterCName]}:'{cell}'";
 
-//                                if (counter != countCells)
+//                                }
+//                                else json += $"{cName[counterCName]}:{cell}";
+
+//                                if (counter != cells.Count())
 //                                    json += ',';
+
 //                                counter++;
 //                                counterCName++;
 //                            }
-
+//                            json += "},";
 //                        }
-
+//                        json += "],";
 
 //                    }
-
+//                    json += "},";
 //                }
+//                json += "],";
+//                Console.WriteLine(json);
+//                Console.WriteLine();
+//                json = JsonSerializer.Serialize(json);
+//                Console.WriteLine(json);
+//                return Ok(json);
 //            }
-//            return Ok();
+
 //        }
 //        public void Database([FromBody] DBConfig config)
 //        {

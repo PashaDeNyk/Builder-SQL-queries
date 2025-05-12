@@ -28,8 +28,8 @@ namespace ReactApp1.Server.Controllers
                     {
                         json += $"name:'{tName}',columns:[";
 
-                        List<string> columnTypeName = ReadColumnsType(connectionString, tName);
-                        List<string> typeData = new List<string>();
+                        List<string> columnTypeName = ReadColumnsType(connectionString, tName);//Типы данных 'известных' таюлиц через postgresql, также для первичной записи в json (первичная запись - записывается вся бд для отображения таблиц, с которыми будет работать пользователь)
+                        List<string> typeData = new List<string>();//Типы данных через c#
                         DataSet dataSet = new DataSet();
                         NpgsqlDataAdapter adapter = new NpgsqlDataAdapter($"select * from {tName}", connection);
                         adapter.Fill(dataSet, tName);
@@ -55,7 +55,7 @@ namespace ReactApp1.Server.Controllers
                                 json += "{";
                                 foreach (object cell in cells)
                                 {
-                                    if (typeData[counterCName] == "String" || typeData[counterCName] =="Boolean" || typeData[counterCName] == "DateTime")
+                                    if (typeData[counterCName] == "String" || typeData[counterCName] == "Boolean" || typeData[counterCName] == "DateTime")
                                     {
                                         json += $"{cName[counterCName]}:'{cell}'";
                                         
