@@ -1,6 +1,5 @@
 import api from "./client";
 
-// Статичная реализация
 export const getToken = (): string | null => {
     return localStorage.getItem('token');
 };
@@ -13,7 +12,6 @@ export const removeToken = (): void => {
     localStorage.removeItem('token');
 };
 
-// auth.ts
 type ApiResponse = {
     success: boolean;
     token?: string;
