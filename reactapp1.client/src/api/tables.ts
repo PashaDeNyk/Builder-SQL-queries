@@ -2,9 +2,9 @@ import { Column } from "../types";
 import api from "./client";
 
 export interface Table {
-    tableName: string;
+    name: string;
     columns: Column[];
-    data?: any[];
+    data: Record<string, any>[];
 }
 
 export const fetchTables = async (): Promise<Table[]> => {

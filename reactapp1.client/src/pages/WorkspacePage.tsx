@@ -18,9 +18,12 @@ import { WorkspaceDropArea } from "../components/WorkspaceDropArea";
 import CalculatedFieldEditor from "../components/panels/CalculatedFieldEditor";
 import { CustomEdge } from "../components/CustomEdge";
 import JoinTypeModal from "../components/JoinTypeModal";
-import { QueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
+
+
 
 const Workspace = () => {
+    const queryClient = useQueryClient();
     const [lastQueryResult, setLastQueryResult] = useState<Record<string, unknown>[]>([]);
     const [cachedQueries, setCachedQueries] = useState<{
         [key: string]: Record<string, unknown>[];
@@ -33,16 +36,20 @@ const Workspace = () => {
     []
   );
   const [whereConditions, setWhereConditions] = useState<Condition[]>([]);
-  const [generatedQuery, setGeneratedQuery] = useState("");
+    const [generatedQuery, setGeneratedQuery] = useState("");
+
   const [queryResult, setQueryResult] = useState<Record<string, unknown>[]>([]);
   const [joinTypeModal, setJoinTypeModal] = useState<{
     visible: boolean;
     connection: Connection | null;
   }>({ visible: false, connection: null });
     const [loading, setLoading] = useState(true);
+    const tables = queryClient.getQueryData(["userTables"]);
     useEffect(() => {
-        const queryClient = new QueryClient();
-        setAvailableTables(queryClient.getQueryData(["userTables"]));
+        
+        console.log("Tables from cache:", tables);
+
+        setAvailableTables(tables);
         setLoading(false);
     }, []);
 
