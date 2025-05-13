@@ -1,4 +1,10 @@
-
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.IdentityModel.Tokens;
+using ReactApp1.Server.DTO;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
 namespace ReactApp1.Server
 {
     public class Program
@@ -7,17 +13,18 @@ namespace ReactApp1.Server
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            
+
             //Поддержка контроллеров
             builder.Services.AddControllers();
-  
+
+
             builder.Services.AddOpenApi();
 
             builder.Services.AddCors(options =>
             {
                 options.AddPolicy("ReactPolicy", builder =>
                 {
-                    builder.WithOrigins("https://localhost:57112") // Ваш React-порт
+                    builder.WithOrigins("https://localhost:57112") // React-порт
                            .AllowAnyHeader()
                            .AllowAnyMethod()
                            .AllowCredentials(); // Если используете куки/авторизацию

@@ -24,11 +24,11 @@ namespace ReactApp1.Server.Controllers
                 {
                     connection.Open();
                     List<string> tablesName = GetTablesName(connectionString);
-                    string json = "tables:[{";
+                    string json = "\"tables\":[";
 
                     foreach (var tName in tablesName)
                     {
-                        json += $"name:'{tName}',columns:[";
+                        json += "{"+$"\"name\":\"{tName}\",\"columns\":[";
 
                         List<string> columnTypeName = ReadColumnsType(connectionString, tName);//Типы данных 'известных' таюлиц через postgresql, также для первичной записи в json (первичная запись - записывается вся бд для отображения таблиц, с которыми будет работать пользователь)
                         List<string> typeData = new List<string>();//Типы данных через c#
@@ -41,13 +41,13 @@ namespace ReactApp1.Server.Controllers
                             int counterTypeData = 0;
                             List<string> cName = new List<string>();//имена столбцов
                             foreach (DataColumn column in dt.Columns) // перебор всех столбцов
-                            {
+                            {  
                                 typeData.Add(column.DataType.Name.ToString());
                                 cName.Add(column.ColumnName);
-                                json += "{" + $"name:'{column.ColumnName}',type:'{columnTypeName[counterTypeData]}'" + "},";
+                                json += "{" + $"\"name\":\"{column.ColumnName}\",\"type\":\"{columnTypeName[counterTypeData]}\"" + "},";
                                 counterTypeData++;
                             }
-                            json += "],data:[";
+                            json += "],\"data\":[";
                             foreach (DataRow row in dt.Rows) // перебор всех строк таблицы
                             {
                                 int counterCName = 0;
@@ -59,10 +59,10 @@ namespace ReactApp1.Server.Controllers
                                 {
                                     if (typeData[counterCName] == "String" || typeData[counterCName] == "Boolean" || typeData[counterCName] == "DateTime")
                                     {
-                                        json += $"{cName[counterCName]}:'{cell}'";
+                                        json += $"\"{cName[counterCName]}\":\"{cell}\"";
                                         
                                     }
-                                    else json += $"{cName[counterCName]}:{cell}";
+                                    else json += $"\"{cName[counterCName]}\":{cell}";
 
                                     if (counter != countCells)
                                         json += ',';
@@ -75,7 +75,7 @@ namespace ReactApp1.Server.Controllers
                         }
                         json +="},";
                     }
-                    json += "],";
+                    json += "]";
                     Console.WriteLine(json);
                     Console.WriteLine();
                     json = JsonSerializer.Serialize(json);

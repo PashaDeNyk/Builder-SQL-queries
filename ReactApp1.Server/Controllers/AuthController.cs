@@ -28,10 +28,12 @@ namespace ReactApp1.Server.Controllers
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
+
             var user = new IdentityUser
             {
                 Email = registerDto.Email
             };
+
             var result = await _userManager.CreateAsync(user, registerDto.Password); //зарегистрированный пользователь
             if (!result.Succeeded)
             {
