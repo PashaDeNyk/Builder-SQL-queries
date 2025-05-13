@@ -10,5 +10,5 @@ export interface Table {
 export const fetchTables = async (): Promise<Table[]> => {
     const response = await api.get("/database/read-database");
     if (!response) throw new Error("Network response was not ok");
-    return response.data.json();
+    return response.data;
 };
