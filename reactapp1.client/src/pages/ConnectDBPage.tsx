@@ -3,6 +3,7 @@ import { useForm } from "react-hook-form";
 import api from "../api/client";
 import DBConnectionField from "../components/DBConnectionField";
 import { fetchTables } from "../api/tables";
+import { useNavigate } from "react-router-dom";
 
 interface DBConfig {
   host: string;
@@ -14,32 +15,59 @@ interface DBConfig {
 
 export default function ConnectDBPage() {
 
-  const queryClient = useQueryClient();
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
+    const queryClient = useQueryClient();
+    const navigate = useNavigate();
+    const {
+        register,
+        handleSubmit,
+        formState: { errors },
     } = useForm<DBConfig>();
 
 
 
     const loadTables = async () => {
         try {
-            const tables = await fetchTables();
-            console.log(tables);
-            queryClient.setQueryData(["userTables"], tables);
-            console.log()
+            const response = await fetchTables();
+
+            let correctedData = response
+            //возможно понадобится
+            //    // 1. Заменяем все кавычки
+            //    .replace(/'/g, '"')
+            //    // 2. Исправляем ключи объектов
+            //    .replace(/(\w+):/g, '"$1":')
+            //    // 3. Фиксим UUID
+            //    .replace(/"([a-f0-9]{8})-([a-f0-9]{4})-([a-f0-9]{4})-([a-f0-9]{4})-([a-f0-9]{12})"/g, '"$1-$2-$3-$4-$5"')
+            //    // 4. Исправляем даты
+            //    .replace(/"(\d{2}\.\d{2}\.\d{4})\s+"0":"(\d{2})":(\d{2})"/g, '"$1 $2:$3:00"')
+            //    // 5. Убираем лишние символы
+            //    .replace(/",\s*"/g, '","')
+            //    // 6. Экранируем переносы строк
+            //    .replace(/\n/g, "\\n")
+            //    // 7. Фиксим структуру объектов
+            //    .replace(/"},{\"name\"/g, '},{"name"')
+            //    // 8. Убираем лишние запятые
+            //    .replace(/,\s*}/g, '}')
+            //    .replace(/,\s*]/g, ']');
+
+            //const fullJson = `{${correctedData}}`;
+            //console.log("Validated JSON:", fullJson);
+
+            const parsedData = JSON.parse(fullJson);
+            queryClient.setQueryData(["userTables"], parsedData.tables);
+            return true;
         } catch (error) {
             console.error("Error loading tables:", error);
             // Обработка ошибки
+            return false;
         }
     };
 
   const { mutate, isPending, isError } = useMutation({
     mutationFn: (config: DBConfig) => api.post("/database/connect", config),
       onSuccess: async () => {
-          await loadTables();
+          const flag = await loadTables();
           console.log('succeed');
+          if (flag) navigate('/');
       },
       onError: (error) => { console.error(error); }
   });
