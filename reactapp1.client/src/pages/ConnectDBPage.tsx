@@ -29,30 +29,17 @@ export default function ConnectDBPage() {
         try {
             const response = await fetchTables();
 
-            let correctedData = response
-            //возможно понадобится
-            //    // 1. Заменяем все кавычки
-            //    .replace(/'/g, '"')
-            //    // 2. Исправляем ключи объектов
-            //    .replace(/(\w+):/g, '"$1":')
-            //    // 3. Фиксим UUID
-            //    .replace(/"([a-f0-9]{8})-([a-f0-9]{4})-([a-f0-9]{4})-([a-f0-9]{4})-([a-f0-9]{12})"/g, '"$1-$2-$3-$4-$5"')
-            //    // 4. Исправляем даты
-            //    .replace(/"(\d{2}\.\d{2}\.\d{4})\s+"0":"(\d{2})":(\d{2})"/g, '"$1 $2:$3:00"')
-            //    // 5. Убираем лишние символы
-            //    .replace(/",\s*"/g, '","')
-            //    // 6. Экранируем переносы строк
-            //    .replace(/\n/g, "\\n")
-            //    // 7. Фиксим структуру объектов
-            //    .replace(/"},{\"name\"/g, '},{"name"')
-            //    // 8. Убираем лишние запятые
-            //    .replace(/,\s*}/g, '}')
-            //    .replace(/,\s*]/g, ']');
+            const wrappedJson = `{${response}}`;
 
-            //const fullJson = `{${correctedData}}`;
-            //console.log("Validated JSON:", fullJson);
-
-            const parsedData = JSON.parse(fullJson);
+            const correctedData = wrappedJson
+                .replace(/\n/g, "\\n")
+                .replace(/\r/g, "\\r")
+                .replace(/\t/g, "\\t")
+                .replace(/,\s*]/g, ']')
+                .replace(/,\s*}/g, '}')
+                .replace(/:([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/g, ':"$1"')
+            console.log(correctedData);
+            const parsedData = JSON.parse(correctedData);
             queryClient.setQueryData(["userTables"], parsedData.tables);
             return true;
         } catch (error) {
