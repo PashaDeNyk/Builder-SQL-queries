@@ -23,8 +23,8 @@ namespace ReactApp1.Server.Controllers
                 using (var connection = new NpgsqlConnection(connectionString))
                 {
                     connection.Open();
-                    string json = "tables:[{";
                     List<string> tablesName = GetTablesName(connectionString);
+                    string json = "tables:[{";
 
                     foreach (var tName in tablesName)
                     {
