@@ -13,6 +13,8 @@ interface DBConfig {
 }
 
 export default function ConnectDBPage() {
+
+  const queryClient = useQueryClient();
   const {
     register,
     handleSubmit,
@@ -24,7 +26,7 @@ export default function ConnectDBPage() {
     const loadTables = async () => {
         try {
             const tables = await fetchTables();
-            const queryClient = useQueryClient();
+            console.log(tables);
             queryClient.setQueryData(["userTables"], tables);
             console.log()
         } catch (error) {
