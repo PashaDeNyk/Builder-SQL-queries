@@ -32,9 +32,9 @@ const Sidebar = ({ availableTables }: SidebarProps) => {
     }, []);
 
     return (
-        <div className="w-64 p-4 bg-gray-800 border-r border-gray-700 overflow-y-auto">
+        <div className="p-4 bg-gray-800 border-r border-gray-700 overflow-y-auto">
             <h2 className="text-xl font-bold mb-4 text-blue-400">Tables</h2>
-            <div className="space-y-2">
+            <div className="flex xl:flex-col flex-row flex-wrap gap-2 xl:space-y-0 space-y-2">
                 {tables.map((table) => (
                     <div
                         key={table.name}
