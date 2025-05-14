@@ -15,9 +15,7 @@ namespace ReactApp1.Server.Controllers
         public IActionResult ReadDatabase()
         {
             try
-            {
-                //DBConfig config;
-                //var connectionString = $"Host={config.Host};Port={config.Port};Database={config.Database};Username={config.Username};Password={config.Password}";
+            { 
                 var connectionString = ConnectionString.connectionString;
 
                 using (var connection = new NpgsqlConnection(connectionString))

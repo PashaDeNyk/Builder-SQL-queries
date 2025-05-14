@@ -1,11 +1,15 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace ReactApp1.Server.Models
 {
     public class User
     {
+        [Column("id")]
         public int Id { get; set; }
-        public string Password { get; set; }
-        public string Email { get; set; }
+        [Column("password")]
+        public string Password { get; set; } = "";
+        [Column("email")]
+        public string Email { get; set; } = "";
     }
 }
