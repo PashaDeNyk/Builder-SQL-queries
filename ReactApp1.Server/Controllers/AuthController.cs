@@ -33,14 +33,14 @@ namespace ReactApp1.Server.Controllers
 
             if (!ModelState.IsValid)
             {
-                response += $"\"error\"; \"error\": {ModelState}";
-                response = JsonSerializer.Serialize(response);
+                response += $"\"error\" \"error\": {ModelState}";
+                //response = JsonSerializer.Serialize(response);
                 return BadRequest(response);
             }
             if (_db.users.Any(u => u.Email == register.Email))
             {
-                response += "\"error\"; \"error\": \"User already exists\"";
-                response = JsonSerializer.Serialize(response);
+                response += "\"error\" \"error\": User already exists";
+                //response = JsonSerializer.Serialize(response);
                 return BadRequest(response);
             }
 
@@ -57,7 +57,7 @@ namespace ReactApp1.Server.Controllers
             _db.users.Add(user);
             _db.SaveChanges();
             response += "\"success\"";
-            response = JsonSerializer.Serialize(response);
+            //response = JsonSerializer.Serialize(response);
             return Ok(response);
         }
 
@@ -70,14 +70,14 @@ namespace ReactApp1.Server.Controllers
 
             if (user == null || !BCrypt.Net.BCrypt.Verify(login.Password, user.Password))
             {
-                response += "\"error\",\"error\": Email or password is incorrect";
-                response = JsonSerializer.Serialize(response);
+                response += "\"error\" \"error\": Email or password is incorrect";
+                //response = JsonSerializer.Serialize(response);
                 return BadRequest(response);
             }
 
             // Генерация JWT-токена
             var token = GenerateJwtToken(login.Email);
-            response += $"\"success\",\"token\": {token}";
+            response += $"\"success\" \"token\": {token}";
             return Ok(response);
         }
 
