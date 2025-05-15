@@ -17,69 +17,6 @@ namespace ReactApp1.Server.Controllers
     [Route("api")]
     public class AuthController : Controller
     {
-        //private readonly UserManager<IdentityUser> _userManager;
-        //private readonly IConfiguration _configuration;
-
-        //public AuthController(
-        //    UserManager<IdentityUser> userManager,
-        //    IConfiguration configuration)
-        //{
-        //    _userManager = userManager;
-        //    _configuration = configuration;
-        //}
-
-        //[HttpPost("register")]
-        //public async Task<IActionResult> Register([FromBody] RegisterDTO registerDto)
-        //{
-        //    if (!ModelState.IsValid)
-        //        return BadRequest(ModelState);
-
-        //    var user = new IdentityUser
-        //    {
-        //        Email = registerDto.Email
-        //    };
-
-        //    var result = await _userManager.CreateAsync(user, registerDto.Password); //зарегистрированный пользователь
-        //    if (!result.Succeeded)
-        //    {
-        //        foreach (var error in result.Errors)
-        //        {
-        //            ModelState.AddModelError(error.Code, error.Description);
-        //        }
-        //        return BadRequest(ModelState);
-        //    }
-        //    var token = GenerateJwtToken(user);
-        //    return Ok (new AuthResponseDTO(user.Email, token));
-        //    //return Ok(new AuthResponseDTO
-
-        //    //    Email = user.Email,
-        //    //    Token = token
-        //    // );
-        //}
-
-        //private string GenerateJwtToken(IdentityUser user)
-        //{
-        //    var key = new SymmetricSecurityKey(
-        //        Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]));
-
-        //    var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-
-        //    var claims = new[]
-        //    {
-        //    new Claim(JwtRegisteredClaimNames.Email, user.Email),
-        //    new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
-        //};
-
-        //    var token = new JwtSecurityToken(
-        //        issuer: _configuration["Jwt:Issuer"],
-        //        audience: _configuration["Jwt:Audience"],
-        //        claims: claims,
-        //        expires: DateTime.Now.AddHours(1),
-        //        signingCredentials: credentials
-        //    );
-
-        //    return new JwtSecurityTokenHandler().WriteToken(token);
-        //}
 
         private readonly AppDbContext _db;
         private readonly IConfiguration _config;
@@ -100,7 +37,6 @@ namespace ReactApp1.Server.Controllers
                 response = JsonSerializer.Serialize(response);
                 return BadRequest(response);
             }
-            // Проверка, что пользователь не существует
             if (_db.users.Any(u => u.Email == register.Email))
             {
                 response += $"\"error\"; \"error\": \"User already exists\";";
@@ -130,7 +66,7 @@ namespace ReactApp1.Server.Controllers
         [HttpPost("login")]
         public IActionResult Login([FromBody] LoginModel login)
         {
-            string response = "\"status:\"";
+            string response = "\"status\":";
             var user = _db.users.SingleOrDefault(u => u.Email == login.Email);
 
             if (user == null || !BCrypt.Net.BCrypt.Verify(login.Password, user.Password))
