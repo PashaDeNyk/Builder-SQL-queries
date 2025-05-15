@@ -19,6 +19,7 @@ import CalculatedFieldEditor from "../components/panels/CalculatedFieldEditor";
 import { CustomEdge } from "../components/CustomEdge";
 import JoinTypeModal from "../components/JoinTypeModal";
 import { useQueryClient } from "@tanstack/react-query";
+import { loadTablesFromDB } from "../api/db";
 
 const Workspace = () => {
     const queryClient = useQueryClient();
@@ -36,9 +37,20 @@ const Workspace = () => {
     const [loading, setLoading] = useState(true);
     const tables = queryClient.getQueryData(["userTables"]);
 
+    const [savedTables, setSavedTables] = useState<any>(null); // Добавили состояние для сохранения таблиц
+
     useEffect(() => {
-        setAvailableTables(tables);
-        setLoading(false);
+        const loadTables = async () => {
+            const tables = await loadTablesFromDB();
+
+            const queryTables = queryClient.getQueryData<Table[]>(["userTables"]);
+
+            setSavedTables(tables.tables);
+            setAvailableTables(queryTables || tables.tables || []);
+
+            setLoading(false);
+        };
+        loadTables();
     }, []);
 
     const handleDropItem = useCallback((tables: Table[], offset: { x: number; y: number } | null) => {
