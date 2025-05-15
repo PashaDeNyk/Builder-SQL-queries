@@ -7,6 +7,8 @@ using ReactApp1.Server.Models;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
 namespace ReactApp1.Server.Controllers
@@ -90,53 +92,68 @@ namespace ReactApp1.Server.Controllers
         [HttpPost("register")]
         public IActionResult Register([FromBody] RegisterModel register)
         {
+            string response = "\"status\":";
+
             if (!ModelState.IsValid)
-                return BadRequest(ModelState);
+            {
+                response += $"\"error\"; \"error\": {ModelState}";
+                response = JsonSerializer.Serialize(response);
+                return BadRequest(response);
+            }
             // Проверка, что пользователь не существует
-            if ( _db.users.Any(u => u.Email == register.Email))
-                return BadRequest("Пользователь уже существует");
-           // if(register.Password != register.Password2)
-               // return BadRequest("Неверно введён пароль");
+            if (_db.users.Any(u => u.Email == register.Email))
+            {
+                response += $"\"error\"; \"error\": \"User already exists\";";
+                response = JsonSerializer.Serialize(response);
+                return BadRequest(response);
+            }
 
             // Хеширование пароля
-            //var passwordHash = BCrypt.Net.BCrypt.HashPassword(model.Password);
-
+            var passwordHash = BCrypt.Net.BCrypt.HashPassword(register.Password);
+            var check = BCrypt.Net.BCrypt.HashPassword(register.Password);
             // Создание пользователя
             var user = new User
             {
 
                 Email = register.Email,
-                Password = register.Password,
+                Password = passwordHash,
             };
 
             _db.users.Add(user);
             _db.SaveChanges();
-
-            return Ok("Пользователь зарегистрирован");
+            response += "\"success\"";
+            response = JsonSerializer.Serialize(response);
+            return Ok(response);
         }
 
 
         [HttpPost("login")]
         public IActionResult Login([FromBody] LoginModel login)
         {
-            // Проверка логина и пароля (можно заменить на проверку в БД)
-            if (login.Email != "check@mail.com" || login.Password != "pass_123")
-                return Unauthorized("Неверный логин или пароль");
+            string response = "\"status:\"";
+            var user = _db.users.SingleOrDefault(u => u.Email == login.Email);
+
+            if (user == null || !BCrypt.Net.BCrypt.Verify(login.Password, user.Password))
+            {
+                response += "\"error\",\"error\": Email or password is incorrect";
+                response = JsonSerializer.Serialize(response);
+                return BadRequest(response);
+            }
 
             // Генерация JWT-токена
             var token = GenerateJwtToken(login.Email);
-            return Ok(new { Token = token });
+            response += $"\"success\",\"token\": {token}";
+            return Ok(response);
         }
 
-        private string GenerateJwtToken(string username)
+        private string GenerateJwtToken(string email)
         {
             var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:Key"]!));
             var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
 
             var claims = new[]
             {
-            new Claim(ClaimTypes.Name, username),
-            new Claim(ClaimTypes.Role, "User") // Можно добавить роли
+                new Claim(ClaimTypes.Email, email)
             };
 
             var token = new JwtSecurityToken(

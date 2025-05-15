@@ -9,11 +9,5 @@ namespace ReactApp1.Server
 
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
-        //protected override void OnModelCreating(ModelBuilder modelBuilder)
-        //{
-        //    modelBuilder.Entity<User>().HasIndex(u => u.Username).IsUnique(); // Уникальный логин
-        //}
-
-
     }
 }
