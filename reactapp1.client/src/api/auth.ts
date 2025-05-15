@@ -1,21 +1,22 @@
 import api from "./client";
 
 export const getToken = (): string | null => {
-    return localStorage.getItem('token');
+    return sessionStorage.getItem('token');
 };
 
 export const setToken = (token: string): void => {
-    localStorage.setItem('token', token);
+    sessionStorage.setItem('token', token);
 };
 
 export const removeToken = (): void => {
-    localStorage.removeItem('token');
+    sessionStorage.removeItem('token');
 };
 
 type ApiResponse = {
     success: boolean;
     token?: string;
     error?: string;
+    data?: {}
 };
 
 export const login = async (email: string, password: string): Promise<{
@@ -26,24 +27,34 @@ export const login = async (email: string, password: string): Promise<{
     try {
         const payload = { email, password };
         const res = await api.post('/login', payload) as ApiResponse;
-
-        if (res?.success === true && res.token) {
-            setToken(res.token);
+        console.log(res.data);
+        const correctedResponse = res!.data!.replace(/"\s+"/g, '", "').replace('":"', '": "')
+            .replace(/"token":\s*([^\s"]+)/g, '"token": "$1"');
+        const ser = JSON.parse(`{${correctedResponse}}`);
+        if (ser.status === 'success' && ser.token) {
+            setToken(ser.token);
+            console.log('UPI U UPI E');
             return {
                 status: 'success',
-                token: res.token
+                token: ser.token
             };
         }
 
         return {
             status: 'error',
-            error: res?.error || 'Login failed'
+            error: ser?.error || 'Login failed'
         };
     } catch (error) {
-        console.error(error);
+        const errorText = error!.response.data.match(/"error":\s*([^"][^,}]*)/)?.[1]?.trim() || "Unknown error";
+        const correctedError = error!.response.data
+            .replace(/"error":\s*([^"][^,}]*)/, `"error": "${errorText}"`)
+            .replace(/"\s+"/g, '", "');
+        console.error(`{${correctedError}}`);
+        const ser = JSON.parse(`{${correctedError}}`);
+        console.error(ser);
         return {
             status: 'error',
-            error: error instanceof Error ? error.message : 'Unknown error'
+            error: error instanceof Error ? ser.message : 'Unknown error'
         };
     }
 };
@@ -58,15 +69,22 @@ export const register = async (
             return { status: 'error', error: 'Passwords do not match' };
         }
 
-        const res = await api.post('/register', { email, password }) as ApiResponse;
-
+        const res = await api.post('/register', { email, password, password2 }) as ApiResponse;
+        console.log(res);
+        console.log(res.status);
+        if (res.status == 200) return { status: 'success' };
         if (res?.success === true) {
             return { status: 'success' };
         }
 
-        return { status: 'error', error: res?.error || 'Registration failed' };
+        if (res.data === 'Пользователь зарегистрирован') return { status: 'success' };
+        if (res.status == 400) console.log(res.data, res.response);
+
+        console.log(res.data, res.response);
+
+        return { status: 'error', error: res?.response.data || 'Registration failed' };
     } catch (error) {
         console.error(error);
-        return { status: 'error', error: error instanceof Error ? error.message : 'Unknown error' };
+        return { status: 'error', error: error instanceof Error ? error.response.data : 'Unknown error' };
     }
 };

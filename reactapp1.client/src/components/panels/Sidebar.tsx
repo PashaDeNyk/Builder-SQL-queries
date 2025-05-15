@@ -9,10 +9,8 @@ interface SidebarProps {
 
 const Sidebar = ({ availableTables }: SidebarProps) => {
     const tables = availableTables ? availableTables : mockDatabase.tables;
-    console.log(tables);
     const [selectedTables, setSelectedTables] = useState<Table[]>([]);
 
-    // Мемоизированные колбэки
     const handleMultiDragStart = useCallback(() => {
         setSelectedTables([]);
     }, []);

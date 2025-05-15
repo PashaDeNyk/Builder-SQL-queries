@@ -1,6 +1,6 @@
 export interface Column {
-    ColumnName: string;
-    ColumnType: string;
+    name?: string;
+    type: string;
 };
 
 export type Table = {
