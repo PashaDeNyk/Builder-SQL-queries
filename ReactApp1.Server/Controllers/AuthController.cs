@@ -39,7 +39,7 @@ namespace ReactApp1.Server.Controllers
             }
             if (_db.users.Any(u => u.Email == register.Email))
             {
-                response += $"\"error\"; \"error\": \"User already exists\";";
+                response += $"\"error\"; \"error\": \"User already exists\"";
                 response = JsonSerializer.Serialize(response);
                 return BadRequest(response);
             }
