@@ -8,7 +8,7 @@ interface SidebarProps {
 }
 
 const Sidebar = ({ availableTables }: SidebarProps) => {
-    const tables = availableTables ? availableTables : mockDatabase.tables;
+    const tables = availableTables ? (availableTables.tables ? availableTables.tables : availableTables) : mockDatabase.tables;
     const [selectedTables, setSelectedTables] = useState<Table[]>([]);
 
     const handleMultiDragStart = useCallback(() => {
