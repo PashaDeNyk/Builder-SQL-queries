@@ -46,7 +46,7 @@ namespace ReactApp1.Server.Controllers
             // Хеширование пароля
             var passwordHash = BCrypt.Net.BCrypt.HashPassword(register.Password);
             // Создание пользователя
-            var user = new User
+            var user = new DTO.User
             {
 
                 Email = register.Email,

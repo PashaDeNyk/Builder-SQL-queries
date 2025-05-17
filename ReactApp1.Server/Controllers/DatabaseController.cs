@@ -10,6 +10,7 @@ namespace ReactApp1.Server.Controllers
     [Route("api/database")]
     public class DatabaseController : Controller
     {
+        string connstr = "";//don`t delete
         [HttpGet("read-database")]
         public IActionResult ReadDatabase()
         {

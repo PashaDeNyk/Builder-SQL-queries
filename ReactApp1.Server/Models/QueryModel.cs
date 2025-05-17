@@ -3,8 +3,8 @@
 
     public class QueryModel
     {
-        public string Name { get; set; } // имя "основной" таблицы (основная таблица - от которой будет начинаться(опираться) запрос и его дальнеёшее построение)
-        public string Select { get; set; } // string потому что выбираться может как всё, так и определённые столбцы
+        public string Name { get; set; } 
+        public string Select { get; set; } 
         public TwoStrOneOperator Where { get; set; }
         public string GroupBy { get; set; }
         public TwoStrOneOperator Having {get;set;}
