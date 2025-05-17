@@ -35,18 +35,20 @@ const Workspace = () => {
     const [queryResult, setQueryResult] = useState<Record<string, unknown>[]>([]);
     const [joinTypeModal, setJoinTypeModal] = useState<{ visible: boolean; connection: Connection | null }>({ visible: false, connection: null });
     const [loading, setLoading] = useState(true);
-    const tables = queryClient.getQueryData(["userTables"]);
 
     const [savedTables, setSavedTables] = useState<any>(null); // Добавили состояние для сохранения таблиц
+
+
+    const queryTables = queryClient.getQueryData<Table[]>(["userTables"]);
 
     useEffect(() => {
         const loadTables = async () => {
             const tables = await loadTablesFromDB();
-
-            const queryTables = queryClient.getQueryData<Table[]>(["userTables"]);
+            
+            console.log(tables, queryTables);
 
             setSavedTables(tables.tables);
-            setAvailableTables(queryTables || tables.tables || []);
+            setAvailableTables(tables.tables || queryTables || []);
 
             setLoading(false);
         };
