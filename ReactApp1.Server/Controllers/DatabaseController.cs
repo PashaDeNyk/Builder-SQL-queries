@@ -10,7 +10,6 @@ namespace ReactApp1.Server.Controllers
     [Route("api/database")]
     public class DatabaseController : Controller
     {
-        public string connstr = "";
         [HttpGet("read-database")]
         public IActionResult ReadDatabase()
         {
