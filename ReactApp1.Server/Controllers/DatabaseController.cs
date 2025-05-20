@@ -10,7 +10,6 @@ namespace ReactApp1.Server.Controllers
     [Route("api/database")]
     public class DatabaseController : Controller
     {
-        string connstr = "";//don`t delete
         [HttpGet("read-database")]
         public IActionResult ReadDatabase()
         {
@@ -55,7 +54,7 @@ namespace ReactApp1.Server.Controllers
                                 json += "{";
                                 foreach (object cell in cells)
                                 {
-                                    if (typeData[counterCName] == "String" || typeData[counterCName] == "Boolean" || typeData[counterCName] == "DateTime")
+                                    if (typeData[counterCName] == "String" || typeData[counterCName] == "Boolean" || typeData[counterCName] == "DateTime" || typeData[counterCName] == "Decimal" || typeData[counterCName] == "Numeric" || typeData[counterCName] == "Real" || typeData[counterCName] == "Double precision" || typeData[counterCName] == "Money")
                                     {
                                         json += $"\"{cName[counterCName]}\":\"{cell}\"";
                                         
@@ -138,9 +137,5 @@ namespace ReactApp1.Server.Controllers
 
         }
 
-        public void setConnStr(string connStr2)
-        {
-            connstr = connStr2;
-        }
     }
 }

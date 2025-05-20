@@ -62,7 +62,7 @@ namespace ReactApp1.Server.Controllers
 
 
         [HttpPost("login")]
-        public IActionResult Login([FromBody] LoginModel login)
+        public IActionResult Login([FromBody] LoginModel login)//возвращать что пользователя нет
         {
             string response = "\"status\":";
             var user = _db.users.SingleOrDefault(u => u.Email == login.Email);
