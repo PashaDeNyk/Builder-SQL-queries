@@ -4,11 +4,14 @@
     public class QueryModel
     {
         public string Name { get; set; } 
-        public string Select { get; set; } 
-        public TwoStrOneOperator Where { get; set; }
+        public string Select { get; set; }
+        //public TwoStrOneOperator Where { get; set; }
+        public List<Tuple<string, string, string>> Where { get; set; }
         public string GroupBy { get; set; }
-        public TwoStrOneOperator Having {get;set;}
-        public TwoStrOneOperator OrederBy {get;set;}
+        //public TwoStrOneOperator Having {get;set;}
+        public List<Tuple<string, string, string>> Having { get; set; }
+        //public TwoStrOneOperator OrederBy {get;set;}
+        public List<Tuple<string,string,string>> OrederBy {get;set;}
 
     }
 
