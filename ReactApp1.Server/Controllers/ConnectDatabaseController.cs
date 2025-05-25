@@ -20,7 +20,7 @@ namespace ReactApp1.Server.Controllers
                     connection.Open();
                     connection.Close();
                 }
-                return Ok();
+                return Ok("Connection success");
             }
             catch (Exception e)
             {

@@ -26,7 +26,7 @@ namespace ReactApp1.Server.Controllers
         }
 
         [HttpPost("register")]
-        public IActionResult Register([FromBody] RegisterModel register)
+        public async Task<IActionResult> Register([FromBody] RegisterModel register)
         {
             string response = "\"status\":";
 
@@ -62,12 +62,17 @@ namespace ReactApp1.Server.Controllers
 
 
         [HttpPost("login")]
-        public IActionResult Login([FromBody] LoginModel login)//возвращать что пользователя нет
+        public async Task<IActionResult> Login([FromBody] LoginModel login)//возвращать что пользователя нет
         {
             string response = "\"status\":";
-            var user = _db.users.SingleOrDefault(u => u.Email == login.Email);
 
-            if (user == null || !BCrypt.Net.BCrypt.Verify(login.Password, user.Password))
+
+            var user = _db.users.SingleOrDefault(u => u.Email == login.Email);
+            
+            if(user== null)
+            { return BadRequest("User not found"); }
+
+            if (!BCrypt.Net.BCrypt.Verify(login.Password, user.Password))
             {
                 response += "\"error\" \"error\": Email or password is incorrect";
                 //response = JsonSerializer.Serialize(response);
