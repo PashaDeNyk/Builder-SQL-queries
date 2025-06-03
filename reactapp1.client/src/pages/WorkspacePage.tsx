@@ -219,7 +219,7 @@ const Workspace = () => {
                 onConfirm={confirmJoinType}
                 onCancel={() => setJoinTypeModal({ visible: false, connection: null })}
             />
-            <div className="flex flex-col xl:flex-row h-screen bg-gray-900">
+            <div className="flex flex-col xl:flex-row h-scr bg-gray-900">
                 <div className="w-full xl:w-64 bg-gray-800 border-r border-gray-700 z-10">
                     <Sidebar availableTables={availableTables} />
                 </div>
@@ -265,22 +265,24 @@ const Workspace = () => {
                     </div>
                 </WorkspaceDropArea>
 
-                <div className="w-full xl:w-96 bg-gray-800 border-l border-gray-700 overflow-y-auto p-4 z-10 xl:h-full xl:order-none order-last max-xl:h-96">
-                    <h3 className="text-lg font-bold mb-4 text-blue-400">Generated SQL</h3>
-                    <div className="font-mono text-sm bg-gray-900 p-2 rounded mb-4 text-gray-300">
-                        {generatedQuery || "-- SQL query will be generated here --"}
-                    </div>
-                    <h3 className="text-lg font-bold mb-4 text-blue-400">Results</h3>
-                    <div className="bg-gray-900 p-2 rounded space-y-2">
-                        {queryResult.slice(0, 10).map((row, i) => (
-                            <div key={i} className="bg-gray-800 p-2 rounded shadow-sm text-xs text-gray-300">
-                                <pre>{JSON.stringify(row, null, 2)}</pre>
-                            </div>
-                        ))}
-                    </div>
+               
+            </div>
+            <div className="w-full w-f xl:w-96 bg-gray-800 border-l border-gray-700 overflow-y-auto p-4 z-10 xl:h-full xl:order-none order-last max-xl:h-96">
+                <h3 className="text-lg font-bold mb-4 text-blue-400">Generated SQL</h3>
+                <div className="font-mono text-sm bg-gray-900 p-2 rounded mb-4 text-gray-300">
+                    {generatedQuery || "-- SQL query will be generated here --"}
+                </div>
+                <h3 className="text-lg font-bold mb-4 text-blue-400">Results</h3>
+                <div className="bg-gray-900 p-2 rounded space-y-2">
+                    {queryResult.slice(0, 10).map((row, i) => (
+                        <div key={i} className="bg-gray-800 p-2 rounded shadow-sm text-xs text-gray-300">
+                            <pre>{JSON.stringify(row, null, 2)}</pre>
+                        </div>
+                    ))}
                 </div>
             </div>
         </DndProvider>
+
     );
 };
 
