@@ -7,7 +7,7 @@ namespace ReactApp1.Server.Controllers
     [Route("api")]
     public class CreateSQLFileController : Controller
     {
-        [HttpGet("sqlfile")]
+        [HttpGet("create-file")]
         public IActionResult CreateSQLFile(string sql)
         {
             string fileName = "users_export.sql";//временное название файла

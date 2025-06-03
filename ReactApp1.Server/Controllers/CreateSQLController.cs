@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using ReactApp1.Server.Models;
 using System.Globalization;
+using System.Threading.Tasks;
 
 namespace ReactApp1.Server.Controllers
 {
@@ -9,7 +10,7 @@ namespace ReactApp1.Server.Controllers
     public class CreateSQLController : Controller
     {
         [HttpPost("create-query")]
-        public IActionResult CreateSQL([FromBody] QueryModel queryModel)//ОСНОВНАЯ ПРОБЛЕМА С ИСПОЛЬЗОВАНИЕМ LIST
+        public async Task<IActionResult> CreateSQL([FromBody] QueryModel queryModel)//ОСНОВНАЯ ПРОБЛЕМА С ИСПОЛЬЗОВАНИЕМ LIST
         {
             string SQL = "";
 
@@ -53,7 +54,7 @@ namespace ReactApp1.Server.Controllers
 
             }
             SQL += ";";//необязательно
-
+            //var saveQueryResult = await ()
             return Ok(SQL);
         }
     }

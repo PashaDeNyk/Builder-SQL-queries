@@ -14,9 +14,6 @@
 
         public Tuple<string, string, string,string> Join { get; set; } // тип и название таблицы, если не cross join, то и названия столбцов, также там всегда =, так как id>id это глупость
                                                                        // обработать момент с тем чтобы давать названия таблица по типу "product p on p.product_id..."
-
-        //public TwoStrOneOperator Where { get; set; }
-
         //!!!!!!!!!!!!!!!!!!!!
         //Возможно поэтому нужен List, так что если в нём более одного элемента ставить and или or, но это может выбирать пользователь
         //!!!!!!!!!!!!!!!!!!!!
@@ -27,22 +24,12 @@
         public string GroupBy { get; set; }//возможно по столбцам сортировать например "GROUP BY 1"
         
         
-        //public TwoStrOneOperator Having {get;set;}
         public Tuple<string, string, string> Having { get; set; } // фильтрация после группировки
                                                                   // str1 str2 operator
                                                                   // можно считать условием группировки
         
-        
-        //public TwoStrOneOperator OrederBy {get;set;}
-        public Tuple<string,string,string> OrederBy {get;set;}
+        public Tuple<string,string,string> OrderBy {get;set;}
 
 
     }
-
-    public struct TwoStrOneOperator
-    {
-        string str1;
-        string str2;
-        string operator_str;
-    };
 }

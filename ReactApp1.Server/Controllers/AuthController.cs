@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using ReactApp1.Server.DTO;
 using ReactApp1.Server.Models;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -66,8 +67,8 @@ namespace ReactApp1.Server.Controllers
 
 
             var user = _db.users.SingleOrDefault(u => u.Email == login.Email);
-            
-            if(user== null)
+
+            if (user == null)
             { return BadRequest("User not found"); }
 
             if (!BCrypt.Net.BCrypt.Verify(login.Password, user.Password))
@@ -153,6 +154,14 @@ namespace ReactApp1.Server.Controllers
             }
         }
 
+
+        [HttpPost]
+        public async Task<IActionResult> SaveQuery([FromBody] string query)
+        {
+            var userIdClaim = User.FindFirst("UserId")?.Value;
+            return Ok();
+        }
+
         private string GenerateJwtToken(string email)
         {
             var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:Key"]!));
@@ -162,9 +171,7 @@ namespace ReactApp1.Server.Controllers
             var claims = new[]
             {
                 new Claim(ClaimTypes.Email, email),
-                        new Claim(JwtRegisteredClaimNames.Exp,
-                 new DateTimeOffset(expiryDate).ToUnixTimeSeconds().ToString(),
-                 ClaimValueTypes.Integer64)
+                new Claim(JwtRegisteredClaimNames.Exp,new DateTimeOffset(expiryDate).ToUnixTimeSeconds().ToString(), ClaimValueTypes.Integer64)
             };
 
             var token = new JwtSecurityToken(
