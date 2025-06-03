@@ -20,6 +20,7 @@ import { CustomEdge } from "../components/CustomEdge";
 import JoinTypeModal from "../components/JoinTypeModal";
 import { useQueryClient } from "@tanstack/react-query";
 import { loadTablesFromDB } from "../api/db";
+import api from "../api/client";
 
 const Workspace = () => {
     const queryClient = useQueryClient();
@@ -136,6 +137,17 @@ const Workspace = () => {
         }
     }, [joinTypeModal.connection, setEdges, setJoins]);
 
+    const throwQuery = async (table: string, fields: any[]) => {
+        try {
+            const payload = { Name: table, Select: '*', Join: { Item1: null, Item2: null, Item3: null, Item4: null }, Where: null, OrderBy: null, Having: null, GroupBy: null };
+            const res = await api.post('/create-query', payload);
+            if (!res) throw res;
+            console.log(res);
+        } catch (error) {
+            console.error(error);
+        }
+    }
+
     const generateQuery = () => {
         if (generatedQuery) return generatedQuery;
         if (nodes.length === 0) {
@@ -148,6 +160,8 @@ const Workspace = () => {
             ...nodes.flatMap((n: any) => n.data.columns.map((c: any) => `${n.data.name}.${c.name}`)),
             ...calculatedFields.map((f) => `${f.expression} AS ${f.alias}`),
         ];
+
+        throwQuery(nodes[0].data.name, fields as any[]);
 
         const whereClause = whereConditions.length > 0
             ? `WHERE ${whereConditions.map((c) => `${c.column} ${c.operator} ${c.value}`).join(" AND ")}`
