@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Identity;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -33,13 +34,11 @@ namespace ReactApp1.Server.Controllers
             if (!ModelState.IsValid)
             {
                 response += $"\"error\" \"error\": {ModelState}";
-                //response = JsonSerializer.Serialize(response);
                 return BadRequest(response);
             }
             if (_db.users.Any(u => u.Email == register.Email))
             {
                 response += "\"error\" \"error\": User already exists";
-                //response = JsonSerializer.Serialize(response);
                 return BadRequest(response);
             }
 
@@ -48,15 +47,14 @@ namespace ReactApp1.Server.Controllers
             // Создание пользователя
             var user = new DTO.User
             {
-
                 Email = register.Email,
                 Password = passwordHash,
+                JWT = "",
             };
 
             _db.users.Add(user);
             _db.SaveChanges();
             response += "\"success\"";
-            //response = JsonSerializer.Serialize(response);
             return Ok(response);
         }
 
@@ -75,24 +73,98 @@ namespace ReactApp1.Server.Controllers
             if (!BCrypt.Net.BCrypt.Verify(login.Password, user.Password))
             {
                 response += "\"error\" \"error\": Email or password is incorrect";
-                //response = JsonSerializer.Serialize(response);
                 return BadRequest(response);
             }
 
             // Генерация JWT-токена
             var token = GenerateJwtToken(login.Email);
+            user.JWT = token;
+            _db.users.Update(user);
+            await _db.SaveChangesAsync();
+
+
             response += $"\"success\" \"token\": {token}";
             return Ok(response);
+        }
+
+        [HttpPost("logout")]
+        public async Task<IActionResult> Logout()
+        {
+            try
+            {
+                // 1. Получаем email пользователя из JWT токена
+                var userEmail = User.FindFirst(ClaimTypes.Email)?.Value;
+
+                if (string.IsNullOrEmpty(userEmail))
+                {
+                    return Unauthorized();
+                }
+
+                // 2. Находим пользователя в БД
+                var user = await _db.users.FirstOrDefaultAsync(u => u.Email == userEmail);
+
+                if (user == null)
+                {
+                    return NotFound();
+                }
+
+                // 3. Удаляем JWT токен
+                user.JWT = null;
+                _db.users.Update(user);
+                await _db.SaveChangesAsync();
+
+                // 4. Возвращаем успешный ответ
+                return Ok();
+            }
+            catch (Exception ex)
+            {
+                return BadRequest();
+            }
+        }
+
+        [HttpGet("check-token")]
+        public IActionResult CheckTokenValidity()
+        {
+            try
+            {
+                // 1. Получаем срок действия токена из claims
+                var expiryClaim = User.FindFirst(JwtRegisteredClaimNames.Exp)?.Value;
+                if (string.IsNullOrEmpty(expiryClaim))
+                {
+                    return BadRequest();
+                }
+
+                // 2. Конвертируем Unix timestamp в DateTime
+                var expiryDate = DateTimeOffset.FromUnixTimeSeconds(long.Parse(expiryClaim)).DateTime;
+                var timeRemaining = expiryDate - DateTime.UtcNow;
+
+                // 3. Проверяем, не истек ли токен
+                if (timeRemaining <= TimeSpan.Zero)
+                {
+                    return Ok();
+                }
+
+                // 4. Возвращаем информацию о времени жизни
+                return Ok();
+            }
+            catch (Exception ex)
+            {
+                return BadRequest();
+            }
         }
 
         private string GenerateJwtToken(string email)
         {
             var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:Key"]!));
             var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
+            var expiryDate = DateTime.UtcNow.AddHours(1);
 
             var claims = new[]
             {
-                new Claim(ClaimTypes.Email, email)
+                new Claim(ClaimTypes.Email, email),
+                        new Claim(JwtRegisteredClaimNames.Exp,
+                 new DateTimeOffset(expiryDate).ToUnixTimeSeconds().ToString(),
+                 ClaimValueTypes.Integer64)
             };
 
             var token = new JwtSecurityToken(

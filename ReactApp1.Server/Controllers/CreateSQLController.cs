@@ -8,7 +8,7 @@ namespace ReactApp1.Server.Controllers
     [Route("api")]
     public class CreateSQLController : Controller
     {
-        [HttpPost]
+        [HttpPost("create-query")]
         public IActionResult CreateSQL([FromBody] QueryModel queryModel)//ОСНОВНАЯ ПРОБЛЕМА С ИСПОЛЬЗОВАНИЕМ LIST
         {
             string SQL = "";
@@ -53,6 +53,7 @@ namespace ReactApp1.Server.Controllers
 
             }
             SQL += ";";//необязательно
+
             return Ok(SQL);
         }
     }

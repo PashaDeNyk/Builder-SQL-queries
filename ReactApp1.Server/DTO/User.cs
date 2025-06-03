@@ -11,5 +11,7 @@ namespace ReactApp1.Server.DTO
         public string Password { get; set; } = "";
         [Column("email")]
         public string Email { get; set; } = "";
+        [Column("jwt")]
+        public string JWT { get; set; } = "";
     }
 }
