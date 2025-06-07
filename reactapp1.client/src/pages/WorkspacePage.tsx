@@ -139,7 +139,7 @@ const Workspace = () => {
 
     const throwQuery = async (table: string, fields: any[]) => {
         try {
-            const payload = { Name: table, Select: '*', Join: { Item1: null, Item2: null, Item3: null, Item4: null }, Where: null, OrderBy: null, Having: null, GroupBy: null };
+            const payload = { Name: table, Select: '*', Join: { Item1: null, Item2: null, Item3: null, Item4: null }, Where: { Item1: null, Item2: null, Item3: null }, OrderBy: { Item1: null, Item2: null, Item3: null }, Having: { Item1: null, Item2: null, Item3: null }, GroupBy: null };
             const res = await api.post('/create-query', payload);
             if (!res) throw res;
             console.log(res);

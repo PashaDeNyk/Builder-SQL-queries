@@ -65,7 +65,11 @@ namespace ReactApp1.Server.Controllers
         {
             string response = "\"status\":";
 
-
+            if (!ModelState.IsValid)
+            {
+                response += $"\"error\" \"error\": {ModelState}";
+                return BadRequest(response);
+            }
             var user = _db.users.SingleOrDefault(u => u.Email == login.Email);
 
             if (user == null)
@@ -155,7 +159,7 @@ namespace ReactApp1.Server.Controllers
         }
 
 
-        [HttpPost]
+        [HttpPost("save-query")]
         public async Task<IActionResult> SaveQuery([FromBody] string query)
         {
             var userIdClaim = User.FindFirst("UserId")?.Value;
