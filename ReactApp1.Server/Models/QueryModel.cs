@@ -12,23 +12,23 @@
         //обработать использование пользовательских названий переменных и агрегатные функции по типу sum avg count
         
 
-        public Tuple<string, string, string,string> Join { get; set; } // тип и название таблицы, если не cross join, то и названия столбцов, также там всегда =, так как id>id это глупость
+        public Tuple<string, string, string,string>? Join { get; set; } // тип и название таблицы, если не cross join, то и названия столбцов, также там всегда =, так как id>id это глупость
                                                                        // обработать момент с тем чтобы давать названия таблица по типу "product p on p.product_id..."
         //!!!!!!!!!!!!!!!!!!!!
         //Возможно поэтому нужен List, так что если в нём более одного элемента ставить and или or, но это может выбирать пользователь
         //!!!!!!!!!!!!!!!!!!!!
-        public Tuple<string, string, string> Where { get; set; } //str1 str2 operator
+        public Tuple<string, string, string>? Where { get; set; } //str1 str2 operator
                                                                  //WHERE department = 'IT' AND salary > 5000;
                                                                  //также проработать работу с датами
 
-        public string GroupBy { get; set; }//возможно по столбцам сортировать например "GROUP BY 1"
+        public string? GroupBy { get; set; }//возможно по столбцам сортировать например "GROUP BY 1"
         
         
-        public Tuple<string, string, string> Having { get; set; } // фильтрация после группировки
+        public Tuple<string, string, string>? Having { get; set; } // фильтрация после группировки
                                                                   // str1 str2 operator
                                                                   // можно считать условием группировки
         
-        public Tuple<string,string,string> OrderBy {get;set;}
+        public Tuple<string,string,string>? OrderBy {get;set;}
 
 
     }
