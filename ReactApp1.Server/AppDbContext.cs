@@ -7,7 +7,7 @@ namespace ReactApp1.Server
     {
         public DbSet<User> users { get; set; }
 
-        public DbSet<LastQuery> lastQuery { get; set; }
+        public DbSet<LastQuery> last_query { get; set; }
 
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
