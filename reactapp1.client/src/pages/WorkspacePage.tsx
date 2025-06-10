@@ -153,11 +153,11 @@ const Workspace = () => {
     }
 
     const generateQuery = () => {
-        //if (generatedQuery) return generatedQuery;
-        //if (nodes.length === 0) {
-        //    setGeneratedQuery("-- Add tables to workspace --");
-        //    return "";
-        //}
+        if (generatedQuery) return generatedQuery;
+        if (nodes.length === 0) {
+            setGeneratedQuery("-- Add tables to workspace --");
+            return "";
+        }
 
         const tables = nodes.map((n: any) => n.data.name);
         const fields = [
@@ -172,7 +172,7 @@ const Workspace = () => {
         const groupByClause = groupByFields.length > 0
             ? `GROUP BY ${groupByFields.join(", ")}`
             : "";
-
+        console.log(havingConditions);
         const havingClause = havingConditions.length > 0
             ? `HAVING ${havingConditions.map((c) => `${c.column} ${c.operator} ${c.value}`).join(" AND ")}`
             : "";
@@ -256,6 +256,12 @@ const Workspace = () => {
         updated.splice(index, 1);
         setOrderByFields(updated);
     };
+    const mockResult = [
+        { "user_id": 6 },
+        { "user_id": 7 },
+        { "user_id": 8 },
+        { "user_id": 9 }
+    ];
 
     const availableFields = useMemo(() => {
         return nodes.flatMap((node) =>
@@ -437,12 +443,30 @@ const Workspace = () => {
                     {generatedQuery || "-- SQL query will be generated here --"}
                 </div>
                 <h3 className="text-lg font-bold mb-4 text-blue-400">Results</h3>
-                <div className="bg-gray-900 p-2 rounded space-y-2">
-                    {queryResult.slice(0, 10).map((row, i) => (
-                        <div key={i} className="bg-gray-800 p-2 rounded shadow-sm text-xs text-gray-300">
-                            <pre>{JSON.stringify(row, null, 2)}</pre>
-                        </div>
-                    ))}
+                <div className="p-4 w-full overflow-x-auto">
+                    <h2 className="text-lg font-semibold mb-2 text-white">Результат запроса</h2>
+                    <table className="min-w-full bg-gray-800 text-white border border-gray-700">
+                        <thead>
+                            <tr>
+                                {Object.keys(mockResult[0]).map((key) => (
+                                    <th key={key} className="py-2 px-4 border-b border-gray-600 text-left">
+                                        {key}
+                                    </th>
+                                ))}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {mockResult.map((row, rowIndex) => (
+                                <tr key={rowIndex} className="hover:bg-gray-700">
+                                    {Object.values(row).map((value, colIndex) => (
+                                        <td key={colIndex} className="py-2 px-4 border-b border-gray-600">
+                                            {value as string | number}
+                                        </td>
+                                    ))}
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
                 </div>
             </div>
            
