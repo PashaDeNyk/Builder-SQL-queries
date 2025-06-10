@@ -153,11 +153,11 @@ const Workspace = () => {
     }
 
     const generateQuery = () => {
-        if (generatedQuery) return generatedQuery;
-        if (nodes.length === 0) {
-            setGeneratedQuery("-- Add tables to workspace --");
-            return "";
-        }
+        //if (generatedQuery) return generatedQuery;
+        //if (nodes.length === 0) {
+        //    setGeneratedQuery("-- Add tables to workspace --");
+        //    return "";
+        //}
 
         const tables = nodes.map((n: any) => n.data.name);
         const fields = [
@@ -209,7 +209,59 @@ const Workspace = () => {
         return query;
     };
 
+    const handleAddGroupBy = () => {
+        setGroupByFields([...groupByFields, '']);
+    };
 
+    const handleAddHaving = () => {
+        setHavingConditions([...havingConditions, { field: '', operator: '', value: '' }]);
+    };
+
+    const handleAddOrderBy = () => {
+        setOrderByFields([...orderByFields, { field: '', order: 'ASC' }]);
+    };
+
+    const handleGroupByChange = (index, value) => {
+        const updated = [...groupByFields];
+        updated[index] = value;
+        setGroupByFields(updated);
+    };
+
+    const handleHavingChange = (index, key, value) => {
+        const updated = [...havingConditions];
+        updated[index][key] = value;
+        setHavingConditions(updated);
+    };
+
+    const handleOrderByChange = (index, key, value) => {
+        const updated = [...orderByFields];
+        updated[index][key] = value;
+        setOrderByFields(updated);
+    };
+
+    const handleRemoveGroupBy = (index) => {
+        const updated = [...groupByFields];
+        updated.splice(index, 1);
+        setGroupByFields(updated);
+    };
+
+    const handleRemoveHaving = (index) => {
+        const updated = [...havingConditions];
+        updated.splice(index, 1);
+        setHavingConditions(updated);
+    };
+
+    const handleRemoveOrderBy = (index) => {
+        const updated = [...orderByFields];
+        updated.splice(index, 1);
+        setOrderByFields(updated);
+    };
+
+    const availableFields = useMemo(() => {
+        return nodes.flatMap((node) =>
+            node.data.columns.map((col) => `${node.data.name}.${col.name}`)
+        );
+    }, [nodes]);
     const executeQuery = () => {
         if (lastQueryResult) {
             setQueryResult(lastQueryResult);
@@ -291,43 +343,107 @@ const Workspace = () => {
                                 Execute Query
                             </button>
                         </div>
+                        <div className="query-configurator">
+                            <h2>GROUP BY</h2>
+                            {groupByFields.map((field, index) => (
+                                <div key={index} className="field-row">
+                                    <select
+                                        value={field}
+                                        onChange={(e) => handleGroupByChange(index, e.target.value)}
+                                    >
+                                        <option value="">Choose field</option>
+                                        {availableFields.map((availableField) => (
+                                            <option key={availableField} value={availableField}>
+                                                {availableField}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <button onClick={() => handleRemoveGroupBy(index)}>delete</button>
+                                </div>
+                            ))}
+                            <button onClick={handleAddGroupBy}>add GROUP BY</button>
+
+                            <h2>HAVING</h2>
+                            {havingConditions.map((condition, index) => (
+                                <div key={index} className="field-row">
+                                    <select
+                                        value={condition.field}
+                                        onChange={(e) => handleHavingChange(index, 'field', e.target.value)}
+                                    >
+                                        <option value="">Choose field</option>
+                                        {availableFields.map((availableField) => (
+                                            <option key={availableField} value={availableField}>
+                                                {availableField}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <select
+                                        value={condition.operator}
+                                        onChange={(e) => handleHavingChange(index, 'operator', e.target.value)}
+                                    >
+                                        <option value="">Operator</option>
+                                        <option value="=">=</option>
+                                        <option value=">">{'>'}</option>
+                                        <option value="<">{'<'}</option>
+                                        <option value=">=">{'>='}</option>
+                                        <option value="<=">{'<='}</option>
+                                        <option value="<>">{'<>'}</option>
+                                    </select>
+                                    <input
+                                        type="text"
+                                        value={condition.value}
+                                        placeholder="Значение"
+                                        onChange={(e) => handleHavingChange(index, 'value', e.target.value)}
+                                    />
+                                    <button onClick={() => handleRemoveHaving(index)}>delete</button>
+                                </div>
+                            ))}
+                            <button onClick={handleAddHaving}>add HAVING</button>
+
+                            <h2>ORDER BY</h2>
+                            {orderByFields.map((order, index) => (
+                                <div key={index} className="field-row">
+                                    <select
+                                        value={order.field}
+                                        onChange={(e) => handleOrderByChange(index, 'field', e.target.value)}
+                                    >
+                                        <option value="">Choose field</option>
+                                        {availableFields.map((availableField) => (
+                                            <option key={availableField} value={availableField}>
+                                                {availableField}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <select
+                                        value={order.order}
+                                        onChange={(e) => handleOrderByChange(index, 'order', e.target.value)}
+                                    >
+                                        <option value="ASC">ASC</option>
+                                        <option value="DESC">DESC</option>
+                                    </select>
+                                    <button onClick={() => handleRemoveOrderBy(index)}>Delete</button>
+                                </div>
+                            ))}
+                            <button onClick={handleAddOrderBy}>add ORDER BY</button>
+                        </div>
                     </div>
                 </WorkspaceDropArea>
-                <div className="w-full xl:w-96 bg-gray-800 border-l border-gray-700 p-4">
-                    {/* 1) Configurator for GROUP BY / HAVING / ORDER BY */}
-                    <QueryConfigurator
-                        availableFields={
-                            // flat list of all columns and calculated aliases
-                            [
-                                ...nodes.flatMap((n: any) => n.data.columns.map((c: any) => `${n.data.name}.${c.name}`)),
-                                ...calculatedFields.map((f) => f.alias),
-                            ]
-                        }
-                        groupByFields={groupByFields}
-                        setGroupByFields={setGroupByFields}
-                        havingConditions={havingConditions}
-                        setHavingConditions={setHavingConditions}
-                        orderByFields={orderByFields}
-                        setOrderByFields={setOrderByFields}
-                    />
+              
 
-                    {/* 2) Generated SQL */}
-                    <h3 className="text-blue-400 font-bold mt-4">Generated SQL</h3>
-                    <pre className="bg-gray-900 p-2 rounded mt-2 text-sm text-gray-300">
-                        {generatedQuery || "-- SQL query will be generated here --"}
-                    </pre>
-
-                    {/* 3) Results preview (first 10 rows) */}
-                    <h3 className="text-blue-400 font-bold mt-4">Results</h3>
-                    <div className="space-y-2 mt-2 overflow-y-auto max-h-60">
-                        {queryResult.slice(0, 10).map((row, i) => (
-                            <div key={i} className="bg-gray-800 p-2 rounded">
-                                <pre className="text-xs text-gray-300">{JSON.stringify(row, null, 2)}</pre>
-                            </div>
-                        ))}
-                    </div>
+            </div>
+            <div className="w-full w-f xl:w-96 bg-gray-800 border-l border-gray-700 overflow-y-auto p-4 z-10 xl:h-full xl:order-none order-last max-xl:h-96">
+                <h3 className="text-lg font-bold mb-4 text-blue-400">Generated SQL</h3>
+                <div className="font-mono text-sm bg-gray-900 p-2 rounded mb-4 text-gray-300">
+                    {generatedQuery || "-- SQL query will be generated here --"}
                 </div>
-               
+                <h3 className="text-lg font-bold mb-4 text-blue-400">Results</h3>
+                <div className="bg-gray-900 p-2 rounded space-y-2">
+                    {queryResult.slice(0, 10).map((row, i) => (
+                        <div key={i} className="bg-gray-800 p-2 rounded shadow-sm text-xs text-gray-300">
+                            <pre>{JSON.stringify(row, null, 2)}</pre>
+                        </div>
+                    ))}
+                </div>
             </div>
            
         </DndProvider>

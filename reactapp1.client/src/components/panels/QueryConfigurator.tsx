@@ -62,17 +62,17 @@ const QueryConfigurator = ({ availableFields }) => {
                         value={field}
                         onChange={(e) => handleGroupByChange(index, e.target.value)}
                     >
-                        <option value="">Выберите поле</option>
+                        <option value="">Choose field</option>
                         {availableFields.map((availableField) => (
                             <option key={availableField} value={availableField}>
                                 {availableField}
                             </option>
                         ))}
                     </select>
-                    <button onClick={() => handleRemoveGroupBy(index)}>Удалить</button>
+                    <button onClick={() => handleRemoveGroupBy(index)}>delete</button>
                 </div>
             ))}
-            <button onClick={handleAddGroupBy}>Добавить GROUP BY</button>
+            <button onClick={handleAddGroupBy}>add GROUP BY</button>
 
             <h2>HAVING</h2>
             {havingConditions.map((condition, index) => (
@@ -81,7 +81,7 @@ const QueryConfigurator = ({ availableFields }) => {
                         value={condition.field}
                         onChange={(e) => handleHavingChange(index, 'field', e.target.value)}
                     >
-                        <option value="">Выберите поле</option>
+                        <option value="">Choose field</option>
                         {availableFields.map((availableField) => (
                             <option key={availableField} value={availableField}>
                                 {availableField}
@@ -92,7 +92,7 @@ const QueryConfigurator = ({ availableFields }) => {
                         value={condition.operator}
                         onChange={(e) => handleHavingChange(index, 'operator', e.target.value)}
                     >
-                        <option value="">Оператор</option>
+                        <option value="">Operator</option>
                         <option value="=">=</option>
                         <option value=">">{'>'}</option>
                         <option value="<">{'<'}</option>
@@ -106,10 +106,10 @@ const QueryConfigurator = ({ availableFields }) => {
                         placeholder="Значение"
                         onChange={(e) => handleHavingChange(index, 'value', e.target.value)}
                     />
-                    <button onClick={() => handleRemoveHaving(index)}>Удалить</button>
+                    <button onClick={() => handleRemoveHaving(index)}>delete</button>
                 </div>
             ))}
-            <button onClick={handleAddHaving}>Добавить HAVING</button>
+            <button onClick={handleAddHaving}>add HAVING</button>
 
             <h2>ORDER BY</h2>
             {orderByFields.map((order, index) => (
@@ -118,7 +118,7 @@ const QueryConfigurator = ({ availableFields }) => {
                         value={order.field}
                         onChange={(e) => handleOrderByChange(index, 'field', e.target.value)}
                     >
-                        <option value="">Выберите поле</option>
+                        <option value="">Choose field</option>
                         {availableFields.map((availableField) => (
                             <option key={availableField} value={availableField}>
                                 {availableField}
@@ -132,10 +132,10 @@ const QueryConfigurator = ({ availableFields }) => {
                         <option value="ASC">ASC</option>
                         <option value="DESC">DESC</option>
                     </select>
-                    <button onClick={() => handleRemoveOrderBy(index)}>Удалить</button>
+                    <button onClick={() => handleRemoveOrderBy(index)}>Delete</button>
                 </div>
             ))}
-            <button onClick={handleAddOrderBy}>Добавить ORDER BY</button>
+            <button onClick={handleAddOrderBy}>add ORDER BY</button>
         </div>
     );
 };
