@@ -14,55 +14,85 @@ namespace ReactApp1.Server.Controllers
         public IActionResult ReadDatabase()
         {
             try
-            { 
+            {
                 var connectionString = ConnectionString.connectionString;
 
                 using (var connection = new NpgsqlConnection(connectionString))
                 {
                     connection.Open();
                     List<string> tablesName = GetTablesName(connectionString);
+                    var result = new List<object>();
                     string json = "\"tables\":[";
 
                     foreach (var tName in tablesName)
                     {
+                        //var tableInfo = new
+                        //{
+                        //    name = tName,
+                        //    columns = new List<object>(),
+                        //    data = new List<Dictionary<string, object>>()
+                        //};
                         json += "{"+$"\"name\":\"{tName}\",\"columns\":[";
 
-                        List<string> columnTypeName = ReadColumnsType(connectionString, tName);//Типы данных 'известных' таюлиц через postgresql, также для первичной записи в json (первичная запись - записывается вся бд для отображения таблиц, с которыми будет работать пользователь)
+                        //List<string> columnTypeName = ReadColumnsType(connectionString, tName);//Типы данных 'известных' таюлиц через postgresql, также для первичной записи в json (первичная запись - записывается вся бд для отображения таблиц, с которыми будет работать пользователь)
+                        
+                        var columnTypeName = ReadColumnsType(connectionString, tName);//Типы данных 'известных' таюлиц через postgresql, также для первичной записи в json (первичная запись - записывается вся бд для отображения таблиц, с которыми будет работать пользователь)
                         List<string> typeData = new List<string>();//Типы данных через c#
+                        
                         DataSet dataSet = new DataSet();
-                        NpgsqlDataAdapter adapter = new NpgsqlDataAdapter($"select * from {tName}", connection);
-                        adapter.Fill(dataSet, tName);
+                        new NpgsqlDataAdapter($"SELECT * FROM {tName}", connection).Fill(dataSet, tName);
 
                         foreach (DataTable dt in dataSet.Tables)
                         {
                             int counterTypeData = 0;
                             List<string> cName = new List<string>();//имена столбцов
                             foreach (DataColumn column in dt.Columns) // перебор всех столбцов
-                            {  
+                            {
+                                //for (int i = 0; i < dt.Columns.Count; i++)
+                                //{
+                                //    tableInfo.columns.Add(new
+                                //    {
+                                //        name = dt.Columns[i].ColumnName,
+                                //        type = columnTypeName[i]
+                                //    });
+                                //}
                                 typeData.Add(column.DataType.Name.ToString());
                                 cName.Add(column.ColumnName);
                                 json += "{" + $"\"name\":\"{column.ColumnName}\",\"type\":\"{columnTypeName[counterTypeData]}\"" + "},";
                                 counterTypeData++;
                             }
-                            json += "],\"data\":[";
+                            //json += "],\"data\":[";
                             foreach (DataRow row in dt.Rows) // перебор всех строк таблицы
                             {
+                                //var rowData = new Dictionary<string, object>();
+                                //for (int i = 0; i < dt.Columns.Count; i++)
+                                //{
+                                //    var column = dt.Columns[i];
+                                //    var value = row[column];
+                                //    rowData[column.ColumnName] = value;
+                                //}
+                                //tableInfo.data.Add(rowData);
+
                                 int counterCName = 0;
                                 var cells = row.ItemArray; // получаем все ячейки строки
                                 int countCells = cells.Count();
                                 int counter = 1;
-                                json += "{";
+                                //json += "{";
                                 foreach (object cell in cells)
                                 {
                                     if (typeData[counterCName] == "String" || typeData[counterCName] == "Boolean" || typeData[counterCName] == "DateTime" || typeData[counterCName] == "Decimal" || typeData[counterCName] == "Numeric" || typeData[counterCName] == "Real" || typeData[counterCName] == "Double precision" || typeData[counterCName] == "Money")
                                     {
-                                        json += $"\"{cName[counterCName]}\":\"{cell}\"";
-                                        
-                                    }
-                                    else json += $"\"{cName[counterCName]}\":{cell}";
+                                        //json += $"\"{cName[counterCName]}\":\"{cell}\"";
 
+                                    }
+                                    else
+                                    {
+                                        //json += $"\"{cName[counterCName]}\":{cell}";
+                                    }
                                     if (counter != countCells)
-                                        json += ',';
+                                    {
+                                        //json += ',';
+                                    }
                                     counter++;
                                     counterCName++;
                                 }
@@ -70,7 +100,8 @@ namespace ReactApp1.Server.Controllers
                             }
                             json += "],";
                         }
-                        json +="},";
+                        //result.Add(tableInfo);
+                        json += "},";
                     }
                     json += "]";
                     Console.WriteLine(json);
@@ -82,9 +113,122 @@ namespace ReactApp1.Server.Controllers
             }
             catch (Exception e)
             {
-                return BadRequest(new { Error = e.Message });
+                return BadRequest(new
+                {
+                    Error = e.Message
+                });
             }
         }
+
+
+        //[HttpGet("read-database")]
+        //public IActionResult ReadDatabase()
+        //{
+        //    try
+        //    {
+        //        var connectionString = ConnectionString.connectionString;
+
+        //        using (var connection = new NpgsqlConnection(connectionString))
+        //        {
+        //            connection.Open();
+        //            List<string> tablesName = GetTablesName(connectionString);
+        //            var result = new List<object>();
+        //            //string json = "\"tables\":[";
+
+        //            foreach (var tName in tablesName)
+        //            {
+        //                var tableInfo = new
+        //                {
+        //                    name = tName,
+        //                    columns = new List<object>(),
+        //                    data = new List<Dictionary<string, object>>()
+        //                };
+        //                //json += "{"+$"\"name\":\"{tName}\",\"columns\":[";
+
+        //                //List<string> columnTypeName = ReadColumnsType(connectionString, tName);//Типы данных 'известных' таюлиц через postgresql, также для первичной записи в json (первичная запись - записывается вся бд для отображения таблиц, с которыми будет работать пользователь)
+        //                var columnTypeName = ReadColumnsType(connectionString, tName);//Типы данных 'известных' таюлиц через postgresql, также для первичной записи в json (первичная запись - записывается вся бд для отображения таблиц, с которыми будет работать пользователь)
+        //                //List<string> typeData = new List<string>();//Типы данных через c#
+        //                DataSet dataSet = new DataSet();
+        //                //NpgsqlDataAdapter adapter = new NpgsqlDataAdapter($"select * from {tName}", connection);
+        //                //adapter.Fill(dataSet, tName);
+        //                new NpgsqlDataAdapter($"SELECT * FROM {tName}", connection).Fill(dataSet, tName);
+
+        //                foreach (DataTable dt in dataSet.Tables)
+        //                {
+        //                    int counterTypeData = 0;
+        //                    List<string> cName = new List<string>();//имена столбцов
+        //                    foreach (DataColumn column in dt.Columns) // перебор всех столбцов
+        //                    {
+        //                        for (int i = 0; i < dt.Columns.Count; i++)
+        //                        {
+        //                            tableInfo.columns.Add(new
+        //                            {
+        //                                name = dt.Columns[i].ColumnName,
+        //                                type = columnTypeName[i]
+        //                            });
+        //                        }
+        //                        //typeData.Add(column.DataType.Name.ToString());
+        //                        //cName.Add(column.ColumnName);
+        //                        //json += "{" + $"\"name\":\"{column.ColumnName}\",\"type\":\"{columnTypeName[counterTypeData]}\"" + "},";
+        //                        // counterTypeData++;
+        //                    }
+        //                    //json += "],\"data\":[";
+        //                    foreach (DataRow row in dt.Rows) // перебор всех строк таблицы
+        //                    {
+        //                        var rowData = new Dictionary<string, object>();
+        //                        for (int i = 0; i < dt.Columns.Count; i++)
+        //                        {
+        //                            var column = dt.Columns[i];
+        //                            var value = row[column];
+        //                            rowData[column.ColumnName] = value;
+        //                        }
+        //                        tableInfo.data.Add(rowData);
+        //                        //int counterCName = 0;
+        //                        //var cells = row.ItemArray; // получаем все ячейки строки
+        //                        //int countCells = cells.Count();
+        //                        //int counter = 1;
+        //                        ////json += "{";
+        //                        //foreach (object cell in cells)
+        //                        //{
+        //                        //    if (typeData[counterCName] == "String" || typeData[counterCName] == "Boolean" || typeData[counterCName] == "DateTime" || typeData[counterCName] == "Decimal" || typeData[counterCName] == "Numeric" || typeData[counterCName] == "Real" || typeData[counterCName] == "Double precision" || typeData[counterCName] == "Money")
+        //                        //    {
+        //                        //        //json += $"\"{cName[counterCName]}\":\"{cell}\"";
+
+        //                        //    }
+        //                        //    else
+        //                        //    {
+        //                        //        //json += $"\"{cName[counterCName]}\":{cell}";
+        //                        //    }
+        //                        //    if (counter != countCells)
+        //                        //    {
+        //                        //        //json += ',';
+        //                        //    }
+        //                        //    counter++;
+        //                        //    counterCName++;
+        //                        //}
+        //                        //json += "},";
+        //                    }
+        //                    //json += "],";
+        //                }
+        //                result.Add(tableInfo);
+        //                //json += "},";
+        //            }
+        //            //json += "]";
+        //            //Console.WriteLine(json);
+        //            //Console.WriteLine();
+        //            //json = JsonSerializer.Serialize(json);
+        //            //Console.WriteLine(json);
+        //            return Ok(new { tables = result });
+        //        }
+        //    }
+        //    catch (Exception e)
+        //    {
+        //        return BadRequest(new
+        //        {
+        //            Error = e.Message
+        //        });
+        //    }
+        //}
 
         public List<string> GetTablesName(string connectionString)
         {

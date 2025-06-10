@@ -25,8 +25,8 @@ namespace ReactApp1.Server.Controllers
                 SQL += $"Select {queryModel.Select} from {queryModel.Name}";
             }
 
-            //временно, пока не увверен в item3, item4 -> это если не cross join и нужно условие
-            if (queryModel.Join != null && queryModel.Join.Item3 == null && queryModel.Join.Item4 == null)
+            //временно, пока не увверен в item3, item4 -> это если не cross join и нужно условие 
+            if (queryModel.Join.Item1 != null && queryModel.Join.Item2!=null && queryModel.Join.Item3 == null && queryModel.Join.Item4 == null)
             {
                 //item1 - тип (cross, inner...)   item2 - название таблицы
                 SQL += $"{queryModel.Join.Item1} {queryModel.Join.Item2}";//это если cross join, в других есть условие
@@ -36,7 +36,7 @@ namespace ReactApp1.Server.Controllers
                 //item1 - тип (cross, inner...)   item2 - название таблицы   item3 - названия столбца от которого тянут связь   item4 - название столбца к которому тянут свзяь
                 SQL += $"{queryModel.Join.Item1} {queryModel.Join.Item2} on {queryModel.Join.Item3} = {queryModel.Join.Item4}";
             }
-            else { return BadRequest("Wrong query model -> wrong Join"); }//если есть item3 но нет item4 и наоборот 
+           // else { return BadRequest("Wrong query model -> wrong Join"); }//если есть item3 но нет item4 и наоборот 
 
             //что если несколько условий
             if (queryModel.Where != null)
