@@ -12,6 +12,6 @@ namespace ReactApp1.Server.DTO
         [Column("email")]
         public string Email { get; set; } = "";
         [Column("jwt")]
-        public string JWT { get; set; } = "";
+        public string? JWT { get; set; } = "";
     }
 }

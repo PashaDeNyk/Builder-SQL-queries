@@ -8,8 +8,8 @@ namespace ReactApp1.Server.DTO
         [Column("id")]
         public int Id { get; set; }
         [Column("user_id")]
-        public string User_ID { get; set; } = "";
+        public int User_ID { get; set; }
         [Column("query")]
-        public string Query { get; set; } = "";
+        public string? Query { get; set; }//Может быть NULL, так как данная таблица заполняется вместе с регистрацией
     }
 }
