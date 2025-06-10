@@ -21,6 +21,7 @@ import JoinTypeModal from "../components/JoinTypeModal";
 import { useQueryClient } from "@tanstack/react-query";
 import { loadTablesFromDB } from "../api/db";
 import api from "../api/client";
+import QueryConfigurator from "../components/panels/QueryConfigurator";
 
 const Workspace = () => {
     const queryClient = useQueryClient();
@@ -36,6 +37,9 @@ const Workspace = () => {
     const [queryResult, setQueryResult] = useState<Record<string, unknown>[]>([]);
     const [joinTypeModal, setJoinTypeModal] = useState<{ visible: boolean; connection: Connection | null }>({ visible: false, connection: null });
     const [loading, setLoading] = useState(true);
+    const [groupByFields, setGroupByFields] = useState<string[]>([]);
+    const [havingConditions, setHavingConditions] = useState<Condition[]>([]);
+    const [orderByFields, setOrderByFields] = useState<{ column: string; direction: 'ASC' | 'DESC' }[]>([]);
 
     const [savedTables, setSavedTables] = useState<any>(null); // Добавили состояние для сохранения таблиц
 
@@ -161,17 +165,27 @@ const Workspace = () => {
             ...calculatedFields.map((f) => `${f.expression} AS ${f.alias}`),
         ];
 
-        throwQuery(nodes[0].data.name, fields as any[]);
-
         const whereClause = whereConditions.length > 0
             ? `WHERE ${whereConditions.map((c) => `${c.column} ${c.operator} ${c.value}`).join(" AND ")}`
+            : "";
+
+        const groupByClause = groupByFields.length > 0
+            ? `GROUP BY ${groupByFields.join(", ")}`
+            : "";
+
+        const havingClause = havingConditions.length > 0
+            ? `HAVING ${havingConditions.map((c) => `${c.column} ${c.operator} ${c.value}`).join(" AND ")}`
+            : "";
+
+        const orderByClause = orderByFields.length > 0
+            ? `ORDER BY ${orderByFields.map((o) => `${o.column} ${o.direction}`).join(", ")}`
             : "";
 
         let query = "";
 
         if (joins.length === 0 && tables.length > 1) {
             const fromClause = tables.reduce((acc, table, index) => index === 0 ? table : `${acc} CROSS JOIN ${table}`, "");
-            query = `SELECT ${fields.join(", ")} FROM ${fromClause} ${whereClause}`;
+            query = `SELECT ${fields.join(", ")} FROM ${fromClause} ${whereClause} ${groupByClause} ${havingClause} ${orderByClause}`;
         } else if (joins.length > 0) {
             let fromClause = joins[0].leftTable;
             const usedTables = new Set<string>([joins[0].leftTable]);
@@ -186,14 +200,15 @@ const Workspace = () => {
                     fromClause += ` CROSS JOIN ${table}`;
                 }
             }
-            query = `SELECT ${fields.join(", ")} FROM ${fromClause} ${whereClause}`;
+            query = `SELECT ${fields.join(", ")} FROM ${fromClause} ${whereClause} ${groupByClause} ${havingClause} ${orderByClause}`;
         } else {
-            query = `SELECT ${fields.join(", ")} FROM ${tables[0]} ${whereClause}`;
+            query = `SELECT ${fields.join(", ")} FROM ${tables[0]} ${whereClause} ${groupByClause} ${havingClause} ${orderByClause}`;
         }
 
         setGeneratedQuery(query.trim().replace(/\s+/g, " "));
         return query;
     };
+
 
     const executeQuery = () => {
         if (lastQueryResult) {
@@ -278,23 +293,43 @@ const Workspace = () => {
                         </div>
                     </div>
                 </WorkspaceDropArea>
+                <div className="w-full xl:w-96 bg-gray-800 border-l border-gray-700 p-4">
+                    {/* 1) Configurator for GROUP BY / HAVING / ORDER BY */}
+                    <QueryConfigurator
+                        availableFields={
+                            // flat list of all columns and calculated aliases
+                            [
+                                ...nodes.flatMap((n: any) => n.data.columns.map((c: any) => `${n.data.name}.${c.name}`)),
+                                ...calculatedFields.map((f) => f.alias),
+                            ]
+                        }
+                        groupByFields={groupByFields}
+                        setGroupByFields={setGroupByFields}
+                        havingConditions={havingConditions}
+                        setHavingConditions={setHavingConditions}
+                        orderByFields={orderByFields}
+                        setOrderByFields={setOrderByFields}
+                    />
 
+                    {/* 2) Generated SQL */}
+                    <h3 className="text-blue-400 font-bold mt-4">Generated SQL</h3>
+                    <pre className="bg-gray-900 p-2 rounded mt-2 text-sm text-gray-300">
+                        {generatedQuery || "-- SQL query will be generated here --"}
+                    </pre>
+
+                    {/* 3) Results preview (first 10 rows) */}
+                    <h3 className="text-blue-400 font-bold mt-4">Results</h3>
+                    <div className="space-y-2 mt-2 overflow-y-auto max-h-60">
+                        {queryResult.slice(0, 10).map((row, i) => (
+                            <div key={i} className="bg-gray-800 p-2 rounded">
+                                <pre className="text-xs text-gray-300">{JSON.stringify(row, null, 2)}</pre>
+                            </div>
+                        ))}
+                    </div>
+                </div>
                
             </div>
-            <div className="w-full w-f xl:w-96 bg-gray-800 border-l border-gray-700 overflow-y-auto p-4 z-10 xl:h-full xl:order-none order-last max-xl:h-96">
-                <h3 className="text-lg font-bold mb-4 text-blue-400">Generated SQL</h3>
-                <div className="font-mono text-sm bg-gray-900 p-2 rounded mb-4 text-gray-300">
-                    {generatedQuery || "-- SQL query will be generated here --"}
-                </div>
-                <h3 className="text-lg font-bold mb-4 text-blue-400">Results</h3>
-                <div className="bg-gray-900 p-2 rounded space-y-2">
-                    {queryResult.slice(0, 10).map((row, i) => (
-                        <div key={i} className="bg-gray-800 p-2 rounded shadow-sm text-xs text-gray-300">
-                            <pre>{JSON.stringify(row, null, 2)}</pre>
-                        </div>
-                    ))}
-                </div>
-            </div>
+           
         </DndProvider>
 
     );
