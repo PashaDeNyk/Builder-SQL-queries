@@ -46,12 +46,18 @@ namespace ReactApp1.Server.Controllers
             // Хеширование пароля
             var passwordHash = BCrypt.Net.BCrypt.HashPassword(register.Password);
             // Создание пользователя
-            var user = new DTO.User
+            var user = new User
             {
                 Email = register.Email,
-                Password = passwordHash,
-                JWT = "",
+                Password = passwordHash
+            
             };
+
+            var lQuery = new LastQuery
+            {
+                User_ID = user.Id
+            };
+            _db.last_query.Add(lQuery);
 
             _db.users.Add(user);
             _db.SaveChanges();
@@ -154,16 +160,27 @@ namespace ReactApp1.Server.Controllers
             }
             catch (Exception ex)
             {
-                return BadRequest();
+                return BadRequest(ex);
             }
         }
 
 
         [HttpPost("save-query")]
-        public async Task<IActionResult> SaveQuery([FromBody] string query)
+        public async Task<IActionResult> SaveQuery(string query)
         {
-            var userIdClaim = User.FindFirst("UserId")?.Value;
-            return Ok();
+            try
+            {
+                var userIdClaim = User.FindFirst("UserId")?.Value;
+                //var user = _db.users.SingleOrDefault(u => u.Email == login.Email);
+
+
+
+                return Ok();
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex);
+            }
         }
 
         private string GenerateJwtToken(string email)

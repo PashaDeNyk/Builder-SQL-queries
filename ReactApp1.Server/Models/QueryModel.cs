@@ -21,6 +21,7 @@
                                                                  //WHERE department = 'IT' AND salary > 5000;
                                                                  //также проработать работу с датами
 
+        //может быть болеео одного элемента
         public string? GroupBy { get; set; }//возможно по столбцам сортировать например "GROUP BY 1"
         
         
@@ -28,7 +29,8 @@
                                                                   // str1 str2 operator
                                                                   // можно считать условием группировки
         
-        public Tuple<string,string,string>? OrderBy {get;set;}
+        //может быть более одного элемента
+        public Tuple<string,string,string>? OrderBy {get;set;} // название столбца по кторому сортировать, по какому принципу (ASC, DESC), второй оператор елси есть
 
 
     }
