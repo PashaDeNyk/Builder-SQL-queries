@@ -27,11 +27,11 @@ namespace ReactApp1.Server.Controllers
                     foreach (var tName in tablesName)
                     {
 
-                        json += "{"+$"\"name\":\"{tName}\",\"columns\":[";
+                        json += "{" + $"\"name\":\"{tName}\",\"columns\":[";
 
                         List<string> columnTypeName = ReadColumnsType(connectionString, tName);//Типы данных 'известных' таюлиц через postgresql, также для первичной записи в json (первичная запись - записывается вся бд для отображения таблиц, с которыми будет работать пользователь)              
                         List<string> typeData = new List<string>();//Типы данных через c#
-                        
+
                         DataSet dataSet = new DataSet();
                         new NpgsqlDataAdapter($"SELECT * FROM {tName}", connection).Fill(dataSet, tName);
 
@@ -85,6 +85,7 @@ namespace ReactApp1.Server.Controllers
                     Console.WriteLine();
                     json = JsonSerializer.Serialize(json);
                     Console.WriteLine(json);
+                    //string temp = ExecQuery("SELECT * FROM logs where log_id<5;");
                     return Ok(json);
                 }
             }
@@ -94,6 +95,97 @@ namespace ReactApp1.Server.Controllers
                 {
                     Error = e.Message
                 });
+            }
+        }
+
+       
+
+
+
+
+        public string ReadQueryTable(string query)
+        {
+            try
+            {
+                var connectionString = ConnectionString.connectionString;
+
+                using (var connection = new NpgsqlConnection(connectionString))
+                {
+                    connection.Open();
+                    //List<string> tablesName = GetTablesName(connectionString);
+                    //var result = new List<object>();
+                    string json = "\"tables\":[";
+
+
+                    json += "{" + $"\"name\":\"ResultQuery\",\"columns\":[";//название таблицы с результатом
+
+                    // List<string> columnTypeName = ReadColumnsType(connectionString, tName);//Типы данных 'известных' таюлиц через postgresql, также для первичной записи в json (первичная запись - записывается вся бд для отображения таблиц, с которыми будет работать пользователь)              
+                    List<string> typeData = new List<string>();//Типы данных через c#
+
+                    DataSet dataSet = new DataSet();
+                    new NpgsqlDataAdapter($"{query}", connection).Fill(dataSet, "ResultQuery");
+
+                    foreach (DataTable dt in dataSet.Tables)
+                    {
+                        int counterTypeData = 0;
+                        List<string> cName = new List<string>();//имена столбцов
+                        foreach (DataColumn column in dt.Columns) // перебор всех столбцов
+                        {
+                            typeData.Add(column.DataType.Name.ToString());
+                            cName.Add(column.ColumnName);
+                            json += "{" + $"\"name\":\"{column.ColumnName}\"" + "},";
+
+                        }
+                        json += "],\"data\":[";
+                        foreach (DataRow row in dt.Rows) // перебор всех строк таблицы
+                        {
+                            int counterCName = 0;
+                            var cells = row.ItemArray; // получаем все ячейки строки
+                            int countCells = cells.Count();
+                            int counter = 1;
+                            json += "{";
+                            foreach (object cell in cells)
+                            {
+                                json += $"\"{cName[counterCName]}\":\"{cell}\"";
+                                if (counter != countCells)
+                                {
+                                    json += ',';
+                                }
+                                //сделать проверку на null, также проблема с jsonb, inet, interval
+                                //хз что делать с массивами, Point пихаю как строку
+                                //if (typeData[counterCName] == "String" || typeData[counterCName] == "Boolean" || typeData[counterCName] == "DateTime" || typeData[counterCName] == "Decimal" || typeData[counterCName] == "Numeric" || typeData[counterCName] == "Real" || typeData[counterCName] == "Double precision" || typeData[counterCName] == "Money" || typeData[counterCName] == "Single" || typeData[counterCName] == "Point" || typeData[counterCName] == "time without time zone")
+                                //{
+                                //    json += $"\"{cName[counterCName]}\":\"{cell}\"";
+                                //}
+                                //else
+                                //{
+                                //    json += $"\"{cName[counterCName]}\":{cell}";
+                                //}
+                                //if (counter != countCells)
+                                //{
+                                //    json += ',';
+                                //}
+                                counter++;
+                                counterCName++;
+                            }
+                            json += "},";
+                        }
+                        json += "],";
+                    }
+                    json += "},]";
+                    Console.WriteLine(json);
+                    Console.WriteLine();
+                    json = JsonSerializer.Serialize(json);
+                    Console.WriteLine(json);
+                    //return Ok(json);
+                    return json;
+                }
+
+            }
+
+            catch (Exception e)
+            {
+                return e.Message;
             }
         }
 
