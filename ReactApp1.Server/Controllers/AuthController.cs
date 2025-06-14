@@ -170,11 +170,12 @@ namespace ReactApp1.Server.Controllers
         {
             try
             {
-                var userIdClaim = User.FindFirst("UserId")?.Value;
-                //var user = _db.users.SingleOrDefault(u => u.Email == login.Email);
+                var userIdClaim = User.FindFirst("UserId")?.Value; //получаем ID из claims
+                var user = _db.last_query.SingleOrDefault(u => u.Id.ToString() == userIdClaim); // иещм соответствующего пользователя в LastQuery
 
-
-
+                user.Query = query;
+                _db.last_query.Update(user);
+                await _db.SaveChangesAsync();
                 return Ok();
             }
             catch (Exception ex)
