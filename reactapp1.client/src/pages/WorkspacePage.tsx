@@ -141,7 +141,20 @@ const Workspace = () => {
         }
     }, [joinTypeModal.connection, setEdges, setJoins]);
 
-    const throwQuery = async (table: string, fields: any[]) => {
+    const readOneTable = async (table: string, fields: any[]) => {
+        try {
+            const payload = `SELECT * from ${table};`;
+            console.log(payload);
+            const res = await api.get('/database/read-table', payload);
+            if (!res) throw res;
+            console.log(res);
+            console.log(res.data);
+        } catch (error) {
+            console.error(error);
+        }
+    }
+
+    const throwQuery = async (table: string[], fields: any[]) => {
         try {
             const payload = { Name: table, Select: '*', Join: { Item1: null, Item2: null, Item3: null, Item4: null }, Where: { Item1: null, Item2: null, Item3: null }, OrderBy: { Item1: null, Item2: null, Item3: null }, Having: { Item1: null, Item2: null, Item3: null }, GroupBy: null };
             const res = await api.post('/create-query', payload);
@@ -152,7 +165,7 @@ const Workspace = () => {
         }
     }
 
-    const generateQuery = () => {
+    const generateQuery = async () => {
         if (generatedQuery) return generatedQuery;
         if (nodes.length === 0) {
             setGeneratedQuery("-- Add tables to workspace --");
@@ -203,6 +216,12 @@ const Workspace = () => {
             query = `SELECT ${fields.join(", ")} FROM ${fromClause} ${whereClause} ${groupByClause} ${havingClause} ${orderByClause}`;
         } else {
             query = `SELECT ${fields.join(", ")} FROM ${tables[0]} ${whereClause} ${groupByClause} ${havingClause} ${orderByClause}`;
+        }
+
+        if (tables.length === 1 && whereConditions.length === 0) {
+            await readOneTable(tables[0], fields);
+        } else {
+            await throwQuery(tables, fields);
         }
 
         setGeneratedQuery(query.trim().replace(/\s+/g, " "));
