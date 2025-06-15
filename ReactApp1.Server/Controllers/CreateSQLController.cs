@@ -65,8 +65,6 @@ namespace ReactApp1.Server.Controllers
             }
             SQL += ";";//необязательно
             var queryResult = ExecQuery(SQL);
-            // var saveQueryResult = await  ()
-            //return SQL,queryResult;
             return Ok(new { QueryString = SQL, QueryResult = queryResult });//нужно возвращать два элемента
         }
 
@@ -98,7 +96,6 @@ namespace ReactApp1.Server.Controllers
                                 {
                                     columnName.Add(reader.GetName(i));
                                     json += "{" + $"\"name\":\"{columnName[i]}\"," + "},";
-
                                 }
                                 json += "],\"data\":[";
 
@@ -107,23 +104,15 @@ namespace ReactApp1.Server.Controllers
                             for (int i = 0; i < reader.FieldCount; i++)
                             {
                                 object value = reader.IsDBNull(i) ? null : reader.GetValue(i);
-
-
                                 json += $"\"{columnName[i]}\":\"{value}\",";
                             }
                             json += "},";
-
-
                         }
                     }
                     json += "],},]";
                 }
-
-
             }
             return json;
         }
-
-
     }
 }
