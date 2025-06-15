@@ -206,7 +206,7 @@ namespace ReactApp1.Server.Controllers
         //    }
         //}
 
-        [HttpGet("read-table")]
+        [HttpPost("read-table")]
         public IActionResult ExecQuery([FromBody] QueryStringModel model)//работает корректно
         {
             bool check = false;

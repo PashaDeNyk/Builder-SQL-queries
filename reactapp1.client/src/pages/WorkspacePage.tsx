@@ -143,9 +143,9 @@ const Workspace = () => {
 
     const readOneTable = async (table: string, fields: any[]) => {
         try {
-            const payload = `SELECT * from ${table};`;
+            const payload = {query:`select * from ${table};`};
             console.log(payload);
-            const res = await api.get('/database/read-table', payload);
+            const res = await api.post('/database/read-table', payload);
             if (!res) throw res;
             console.log(res);
             console.log(res.data);
