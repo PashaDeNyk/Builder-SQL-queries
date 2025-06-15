@@ -39,6 +39,7 @@ const Workspace = () => {
     const [loading, setLoading] = useState(true);
     const [groupByFields, setGroupByFields] = useState<string[]>([]);
     const [havingConditions, setHavingConditions] = useState<Condition[]>([]);
+    const [resultColumns, setResultColumns] = useState<string[]>([]);
     const [orderByFields, setOrderByFields] = useState<{ column: string; direction: 'ASC' | 'DESC' }[]>([]);
 
     const [savedTables, setSavedTables] = useState<any>(null); // Добавили состояние для сохранения таблиц
@@ -141,18 +142,46 @@ const Workspace = () => {
         }
     }, [joinTypeModal.connection, setEdges, setJoins]);
 
-    const readOneTable = async (table: string, fields: any[]) => {
+    const readOneTable = async (table: string) => {
         try {
-            const payload = {query:`select * from ${table};`};
-            console.log(payload);
+            const payload = { query: `select * from ${table};` };
             const res = await api.post('/database/read-table', payload);
-            if (!res) throw res;
-            console.log(res);
-            console.log(res.data);
+
+            if (typeof res.data === 'string') {
+                try {
+                    let fixedJson = res.data.replace(/\\"/g, '"');
+                    fixedJson = fixedJson.replace(/,\s*}/g, '}');
+                    fixedJson = fixedJson.replace(/,\s*]/g, ']');
+                    fixedJson = fixedJson.replace(/,(\s*})/g, '$1');
+
+                    if (!fixedJson.startsWith('{')) {
+                        fixedJson = `{${fixedJson}}`;
+                    }
+
+                    const result = JSON.parse(fixedJson);
+
+                    if (result.tables && result.tables.length > 0) {
+                        const tableData = result.tables[0];
+                        const columns = tableData.columns.map((col: any) => col.name);
+                        const data = tableData.data.map((item: any) => {
+                            const flatItem: Record<string, any> = {};
+                            Object.entries(item).forEach(([key, value]) => {
+                                flatItem[key] = value;
+                            });
+                            return flatItem;
+                        });
+
+                        setLastQueryResult(data);
+                        setResultColumns(columns); // Устанавливаем колонки
+                    }
+                } catch (parseError) {
+                    console.error("JSON parse error:", parseError);
+                }
+            }
         } catch (error) {
-            console.error(error);
+            console.error("API error:", error);
         }
-    }
+    };
 
     const throwQuery = async (table: string[], fields: any[]) => {
         try {
@@ -288,10 +317,6 @@ const Workspace = () => {
         );
     }, [nodes]);
     const executeQuery = () => {
-        if (lastQueryResult) {
-            setQueryResult(lastQueryResult);
-            return;
-        }
 
         let result: Record<string, unknown>[] = [];
 
@@ -310,7 +335,7 @@ const Workspace = () => {
             })
         );
 
-        setQueryResult(result);
+        setLastQueryResult(result);
     };
 
     const nodeTypes = useMemo(() => ({ tableNode: TableNode }), []);
@@ -359,8 +384,8 @@ const Workspace = () => {
                         <div>
                             <h3 className="font-semibold mb-2 text-blue-400">Query Controls</h3>
                             <button
-                                onClick={() => {
-                                    generateQuery();
+                                onClick={async () => {
+                                    await generateQuery();
                                     executeQuery();
                                 }}
                                 className="w-full bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
@@ -464,28 +489,32 @@ const Workspace = () => {
                 <h3 className="text-lg font-bold mb-4 text-blue-400">Results</h3>
                 <div className="p-4 w-full overflow-x-auto">
                     <h2 className="text-lg font-semibold mb-2 text-white">Результат запроса</h2>
-                    <table className="min-w-full bg-gray-800 text-white border border-gray-700">
-                        <thead>
-                            <tr>
-                                {Object.keys(mockResult[0]).map((key) => (
-                                    <th key={key} className="py-2 px-4 border-b border-gray-600 text-left">
-                                        {key}
-                                    </th>
-                                ))}
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {mockResult.map((row, rowIndex) => (
-                                <tr key={rowIndex} className="hover:bg-gray-700">
-                                    {Object.values(row).map((value, colIndex) => (
-                                        <td key={colIndex} className="py-2 px-4 border-b border-gray-600">
-                                            {value as string | number}
-                                        </td>
+                    {lastQueryResult.length > 0 ? (
+                        <table className="min-w-full bg-gray-800 text-white border border-gray-700">
+                            <thead>
+                                <tr>
+                                    {resultColumns.map((key) => (
+                                        <th key={key} className="py-2 px-4 border-b border-gray-600 text-left">
+                                            {key}
+                                        </th>
                                     ))}
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                {lastQueryResult.map((row, rowIndex) => (
+                                    <tr key={rowIndex} className="hover:bg-gray-700">
+                                        {resultColumns.map((key, colIndex) => (
+                                            <td key={colIndex} className="py-2 px-4 border-b border-gray-600">
+                                                {row[key] !== null && row[key] !== undefined ? String(row[key]) : 'NULL'}
+                                            </td>
+                                        ))}
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    ) : (
+                        <p className="text-gray-400">Нет данных для отображения</p>
+                    )}
                 </div>
             </div>
            
