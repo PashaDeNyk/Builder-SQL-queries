@@ -183,19 +183,120 @@ const Workspace = () => {
         }
     };
 
-    const throwQuery = async (table: string[], fields: any[]) => {
+    const throwQuery = async (tables: string[], fields: any[]) => {
         try {
-            const payload = { Name: table, Select: '*', Join: { Item1: null, Item2: null, Item3: null, Item4: null }, Where: { Item1: null, Item2: null, Item3: null }, OrderBy: { Item1: null, Item2: null, Item3: null }, Having: { Item1: null, Item2: null, Item3: null }, GroupBy: null };
+            // Prepare JOIN conditions
+            const joinConditions = joins.map(join => ({
+                Item1: join.leftTable,
+                Item2: join.leftColumn,
+                Item3: join.rightTable,
+                Item4: join.rightColumn,
+                Item5: join.type
+            }));
+
+            // Prepare WHERE conditions
+            const whereConditionsPayload = whereConditions.length > 0 ? {
+                Item1: whereConditions[0].column,
+                Item2: whereConditions[0].operator,
+                Item3: whereConditions[0].value
+            } : { Item1: null, Item2: null, Item3: null };
+
+            // Prepare GROUP BY
+            const groupByPayload = groupByFields.length > 0 ? groupByFields : null;
+
+            // Prepare HAVING conditions
+            const havingConditionsPayload = havingConditions.length > 0 ? {
+                Item1: havingConditions[0].column,
+                Item2: havingConditions[0].operator,
+                Item3: havingConditions[0].value
+            } : { Item1: null, Item2: null, Item3: null };
+
+            // Prepare ORDER BY
+            const orderByPayload = orderByFields.length > 0 ? {
+                Item1: orderByFields[0].column,
+                Item2: orderByFields[0].direction,
+                Item3: null // Additional ordering field if needed
+            } : { Item1: null, Item2: null, Item3: null };
+
+            // If there are no joins and multiple tables, it's a CROSS JOIN
+            let joinPayload;
+            if (joins.length === 0 && tables.length > 1) {
+                joinPayload = {
+                    Item1: tables[0],
+                    Item2: null,
+                    Item3: tables[1],
+                    Item4: null,
+                    Item5: 'CROSS JOIN'
+                };
+            } else if (joins.length > 0) {
+
+                console.log(joins);
+                // Use the first join (you might want to handle multiple joins differently)
+                const firstJoin = joins[0];
+                joinPayload = {
+                    Item1: firstJoin.leftTable,
+                    Item2: firstJoin.leftColumn,
+                    Item3: firstJoin.rightTable,
+                    Item4: firstJoin.rightColumn,
+                    Item5: firstJoin.type
+                };
+            } else {
+                // No joins, single table
+                joinPayload = { Item1: null, Item2: null, Item3: null, Item4: null, Item5: null };
+            }
+
+            const payload = {
+                Name: tables,
+                Select: fields.join(', '),
+                Join: joinPayload,
+                Where: whereConditionsPayload,
+                OrderBy: orderByPayload,
+                Having: havingConditionsPayload,
+                GroupBy: groupByPayload
+            };
+
             const res = await api.post('/create-query', payload);
             if (!res) throw res;
-            console.log(res);
+
+            // Process the response similar to readOneTable
+            if (typeof res.data === 'string') {
+                try {
+                    let fixedJson = res.data.replace(/\\"/g, '"');
+                    fixedJson = fixedJson.replace(/,\s*}/g, '}');
+                    fixedJson = fixedJson.replace(/,\s*]/g, ']');
+                    fixedJson = fixedJson.replace(/,(\s*})/g, '$1');
+
+                    if (!fixedJson.startsWith('{')) {
+                        fixedJson = `{${fixedJson}}`;
+                    }
+
+                    const result = JSON.parse(fixedJson);
+
+                    if (result.tables && result.tables.length > 0) {
+                        const tableData = result.tables[0];
+                        const columns = tableData.columns.map((col: any) => col.name);
+                        const data = tableData.data.map((item: any) => {
+                            const flatItem: Record<string, any> = {};
+                            Object.entries(item).forEach(([key, value]) => {
+                                flatItem[key] = value;
+                            });
+                            return flatItem;
+                        });
+
+                        setLastQueryResult(data);
+                        setResultColumns(columns);
+                    }
+                } catch (parseError) {
+                    console.error("JSON parse error:", parseError);
+                }
+            }
         } catch (error) {
             console.error(error);
         }
     }
 
     const generateQuery = async () => {
-        if (generatedQuery) return generatedQuery;
+        
         if (nodes.length === 0) {
             setGeneratedQuery("-- Add tables to workspace --");
             return "";
@@ -247,8 +348,8 @@ const Workspace = () => {
             query = `SELECT ${fields.join(", ")} FROM ${tables[0]} ${whereClause} ${groupByClause} ${havingClause} ${orderByClause}`;
         }
 
-        if (tables.length === 1 && whereConditions.length === 0) {
-            await readOneTable(tables[0], fields);
+        if (tables.length === 1 && whereConditions.length === 0 && groupByFields.length === 0 && havingConditions.length === 0 && orderByFields.length === 0) {
+            await readOneTable(tables[0]);
         } else {
             await throwQuery(tables, fields);
         }
@@ -316,29 +417,49 @@ const Workspace = () => {
             node.data.columns.map((col) => `${node.data.name}.${col.name}`)
         );
     }, [nodes]);
-    const executeQuery = () => {
+    const executeQuery = useCallback(() => {
+        if (nodes.length === 0) return;
 
         let result: Record<string, unknown>[] = [];
 
         if (nodes.length === 1) {
-            result = nodes[0].data.data;
+            result = nodes[0].data.data || [];
         } else if (nodes.length > 1) {
             result = nodes[0].data.data.flatMap((leftRow: any) =>
                 nodes[1].data.data.map((rightRow: any) => ({ ...leftRow, ...rightRow }))
             );
         }
 
-        result = result.filter((row) =>
-            whereConditions.every((cond) => {
-                const value = row[cond.column.split(".")[1]];
-                return eval(`${value} ${cond.operator} ${cond.value}`);
-            })
-        );
+        if (whereConditions.length > 0) {
+            result = result.filter((row) =>
+                whereConditions.every((cond) => {
+                    const columnParts = cond.column.split(".");
+                    const columnName = columnParts.length > 1 ? columnParts[1] : columnParts[0];
+                    const value = row[columnName];
+                    try {
+                        return eval(`${value} ${cond.operator} ${cond.value}`);
+                    } catch {
+                        return false;
+                    }
+                })
+            );
+        }
 
         setLastQueryResult(result);
-    };
+    }, [nodes, whereConditions]);
 
     const nodeTypes = useMemo(() => ({ tableNode: TableNode }), []);
+    const edgeTypes = useMemo(() => ({ custom: CustomEdge }), []);
+    const handleExecuteQuery = useCallback(async () => {
+        console.log('im here');
+        try {
+            console.log('try');
+            await generateQuery();
+            executeQuery();
+        } catch (error) {
+            console.error("Error executing query:", error);
+        }
+    }, [generateQuery, executeQuery]);
 
     if (loading) return <div>Loading tables...</div>;
 
@@ -364,7 +485,7 @@ const Workspace = () => {
                             onEdgesChange={onEdgesChange}
                             onConnect={onConnect}
                             nodeTypes={nodeTypes}
-                            edgeTypes={{ custom: CustomEdge }}
+                            edgeTypes={edgeTypes}
                             fitView
                         >
                             <Background color="#374151" gap={16} />
@@ -384,10 +505,7 @@ const Workspace = () => {
                         <div>
                             <h3 className="font-semibold mb-2 text-blue-400">Query Controls</h3>
                             <button
-                                onClick={async () => {
-                                    await generateQuery();
-                                    executeQuery();
-                                }}
+                                onClick={handleExecuteQuery}
                                 className="w-full bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
                             >
                                 Execute Query
