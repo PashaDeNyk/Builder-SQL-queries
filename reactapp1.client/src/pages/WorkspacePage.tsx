@@ -246,15 +246,13 @@ const Workspace = () => {
             }
 
             const payload = {
-                query :  {
-                    Name: tables,
-                    Select: fields.join(', '),
-                    Join: joinPayload,
-                    Where: whereConditionsPayload,
-                    OrderBy: orderByPayload,
-                    Having: havingConditionsPayload,
-                    GroupBy: groupByPayload
-                }
+                Name: tables,
+                Select: fields.join(', '),
+                Join: joinPayload,
+                Where: whereConditionsPayload,
+                OrderBy: orderByPayload,
+                Having: havingConditionsPayload,
+                GroupBy: groupByPayload
             };
 
             const res = await api.post('/create-query', payload);
