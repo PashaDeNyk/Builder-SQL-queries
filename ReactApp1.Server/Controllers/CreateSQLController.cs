@@ -57,11 +57,11 @@ namespace ReactApp1.Server.Controllers
 
             if (queryModel.OrderBy.Item1 != null && queryModel.OrderBy.Item3 == null)
             {
-                SQL += $" Having {queryModel.Having.Item1} {queryModel.Having.Item2}";
+                SQL += $" OrderBy {queryModel.OrderBy.Item1} {queryModel.OrderBy.Item2}";
             }
             else if (queryModel.OrderBy.Item1 != null && queryModel.OrderBy.Item3 != null)
             {
-                SQL += $" Having {queryModel.Having.Item1} {queryModel.Having.Item2} {queryModel.Having.Item3}";
+                SQL += $" OrderBy {queryModel.OrderBy.Item1} {queryModel.OrderBy.Item2} {queryModel.OrderBy.Item3}";
             }
             SQL += ";";//необязательно
             var queryResult = ExecQuery(SQL);
