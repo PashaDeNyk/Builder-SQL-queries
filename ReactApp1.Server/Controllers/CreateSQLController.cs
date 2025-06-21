@@ -94,7 +94,12 @@ namespace ReactApp1.Server.Controllers
                                 for (int i = 0; i < reader.FieldCount; i++)
                                 {
                                     columnName.Add(reader.GetName(i));
-                                    json += "{" + $"\"name\":\"{columnName[i]}\"" + "},";
+                                    if (i+1==reader.FieldCount)
+                                    {
+                                        json += "{" + $"\"name\":\"{columnName[i]}\"" + "}";
+                                    }
+                                    else
+                                        json += "{" + $"\"name\":\"{columnName[i]}\"" + "},";
                                 }
                                 json += "],\"data\":[";
 
