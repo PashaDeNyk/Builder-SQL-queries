@@ -115,19 +115,13 @@ const Workspace = () => {
         const [sourceTable, sourceColumn] = conn.source.split("|");
         const [targetTable, targetColumn] = conn.target.split("|");
 
-        const joinRequest: ApiJoinRequest = {
-            isJoin: true,
-            joinType: type,
-            tables: [sourceTable, targetTable]
-        };
-
         try {
             setJoins(prev => [...prev, {
                 leftTable: sourceTable,
                 leftColumn: sourceColumn,
                 rightTable: targetTable,
                 rightColumn: targetColumn,
-                type,
+                type: type.toUpperCase(), // Сохраняем тип в верхнем регистре
             }]);
 
             setEdges(eds => addEdge({
@@ -185,69 +179,65 @@ const Workspace = () => {
 
     const throwQuery = async (tables: string[], fields: any[]) => {
         try {
-            // Prepare JOIN conditions
-            const joinConditions = joins.map(join => ({
-                Item1: join.leftTable,
-                Item2: join.leftColumn,
-                Item3: join.rightTable,
-                Item4: join.rightColumn,
-                Item5: join.type
-            }));
+            // Основная таблица - всегда первая в массиве
+            const mainTable = tables[0];
 
-            // Prepare WHERE conditions
+            // Подготовка JOIN структуры
+            let joinPayload = { Item1: null, Item2: null, Item3: null, Item4: null };
+
+            if (joins.length > 0) {
+                // Берем первый JOIN (можно расширить для множественных JOIN)
+                const firstJoin = joins[0];
+
+                joinPayload = {
+                    Item1: firstJoin!.type!.toUpperCase(), // Тип JOIN в верхнем регистре
+                    Item2: firstJoin.rightTable,        // Таблица для JOIN
+                    Item3: firstJoin.leftColumn,        // Столбец из основной таблицы
+                    Item4: firstJoin.rightColumn        // Столбец из присоединяемой таблицы
+                };
+
+                // Для CROSS JOIN не указываем столбцы
+                if (firstJoin.type.toUpperCase() === 'CROSS') {
+                    joinPayload.Item3 = null;
+                    joinPayload.Item4 = null;
+                }
+            } else if (tables.length > 1) {
+                // Если нет JOIN, но несколько таблиц - это CROSS JOIN
+                joinPayload = {
+                    Item1: 'CROSS',
+                    Item2: tables[1], // Вторая таблица
+                    Item3: null,      // Для CROSS JOIN столбцы не указываются
+                    Item4: null
+                };
+            }
+
+            // Подготовка WHERE условий
             const whereConditionsPayload = whereConditions.length > 0 ? {
                 Item1: whereConditions[0].column,
                 Item2: whereConditions[0].operator,
                 Item3: whereConditions[0].value
             } : { Item1: null, Item2: null, Item3: null };
 
-            // Prepare GROUP BY
+            // Подготовка GROUP BY
             const groupByPayload = groupByFields.length > 0 ? groupByFields : null;
 
-            // Prepare HAVING conditions
+            // Подготовка HAVING условий
             const havingConditionsPayload = havingConditions.length > 0 ? {
                 Item1: havingConditions[0].column,
                 Item2: havingConditions[0].operator,
                 Item3: havingConditions[0].value
             } : { Item1: null, Item2: null, Item3: null };
 
-            // Prepare ORDER BY
+            // Подготовка ORDER BY
             const orderByPayload = orderByFields.length > 0 ? {
                 Item1: orderByFields[0].column,
                 Item2: orderByFields[0].direction,
-                Item3: null // Additional ordering field if needed
+                Item3: null
             } : { Item1: null, Item2: null, Item3: null };
-
-            // If there are no joins and multiple tables, it's a CROSS JOIN
-            let joinPayload;
-            if (joins.length === 0 && tables.length > 1) {
-                joinPayload = {
-                    Item1: tables[0],
-                    Item2: null,
-                    Item3: tables[1],
-                    Item4: null,
-                    Item5: 'CROSS JOIN'
-                };
-            } else if (joins.length > 0) {
-
-                console.log(joins);
-                // Use the first join (you might want to handle multiple joins differently)
-                const firstJoin = joins[0];
-                joinPayload = {
-                    Item1: firstJoin.leftTable,
-                    Item2: firstJoin.leftColumn,
-                    Item3: firstJoin.rightTable,
-                    Item4: firstJoin.rightColumn,
-                    Item5: firstJoin.type
-                };
-            } else {
-                // No joins, single table
-                joinPayload = { Item1: null, Item2: null, Item3: null, Item4: null, Item5: null };
-            }
 
             const payload = {
                 query: {
-                    Name: tables,
+                    Name: mainTable, // Только одна таблица
                     Select: fields.join(', '),
                     Join: joinPayload,
                     Where: whereConditionsPayload,
@@ -260,7 +250,7 @@ const Workspace = () => {
             const res = await api.post('/create-query', payload);
             if (!res) throw res;
 
-            // Process the response similar to readOneTable
+            // Обработка ответа
             if (typeof res.data === 'string') {
                 try {
                     let fixedJson = res.data.replace(/\\"/g, '"');
