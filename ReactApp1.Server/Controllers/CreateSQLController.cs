@@ -94,7 +94,7 @@ namespace ReactApp1.Server.Controllers
                                 for (int i = 0; i < reader.FieldCount; i++)
                                 {
                                     columnName.Add(reader.GetName(i));
-                                    json += "{" + $"\"name\":\"{columnName[i]}\"," + "},";
+                                    json += "{" + $"\"name\":\"{columnName[i]}\"" + "},";
                                 }
                                 json += "],\"data\":[";
 
@@ -103,7 +103,13 @@ namespace ReactApp1.Server.Controllers
                             for (int i = 0; i < reader.FieldCount; i++)
                             {
                                 object value = reader.IsDBNull(i) ? null : reader.GetValue(i);
-                                json += $"\"{columnName[i]}\":\"{value}\",";
+                                if (i + 1 == reader.FieldCount)
+                                {
+                                    json += $"\"{columnName[i]}\":\"{value}\"";
+                                }
+                                else
+                                    json += $"\"{columnName[i]}\":\"{value}\",";
+
                             }
                             json += "},";
                         }
