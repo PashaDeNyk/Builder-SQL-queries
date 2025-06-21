@@ -236,7 +236,6 @@ const Workspace = () => {
             } : { Item1: null, Item2: null, Item3: null };
 
             const payload = {
-                query: {
                     Name: mainTable, // Только одна таблица
                     Select: fields.join(', '),
                     Join: joinPayload,
@@ -244,14 +243,13 @@ const Workspace = () => {
                     OrderBy: orderByPayload,
                     Having: havingConditionsPayload,
                     GroupBy: groupByPayload
-                }
             };
 
             const res = await api.post('/create-query', payload);
             if (!res) throw res;
 
             // Обработка ответа
-            if (typeof res.data === 'string') {
+            if (typeof res.data.queryResult === 'string') {
                 try {
                     let fixedJson = res.data.replace(/\\"/g, '"');
                     fixedJson = fixedJson.replace(/,\s*}/g, '}');
