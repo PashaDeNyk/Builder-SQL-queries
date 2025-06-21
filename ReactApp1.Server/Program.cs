@@ -36,6 +36,7 @@ namespace ReactApp1.Server
                     };
                 });
 
+            builder.Services.AddAuthorization();//Добавляем авторизацию
             //Поддержка контроллеров
             builder.Services.AddControllers();
 

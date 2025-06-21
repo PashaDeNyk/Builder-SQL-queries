@@ -18,6 +18,8 @@ namespace ReactApp1.Server.Controllers
     [Route("api")]
     public class AuthController : Controller
     {
+        public static int user_id_tmp = 0;
+
 
         private readonly AppDbContext _db;
         private readonly IConfiguration _config;
@@ -53,13 +55,11 @@ namespace ReactApp1.Server.Controllers
             
             };
 
-            var lQuery = new LastQuery
-            {
-                User_ID = user.Id
-            };
-            _db.last_query.Add(lQuery);
+     
 
             _db.users.Add(user);
+            _db.SaveChanges();
+
             _db.SaveChanges();
             response += "\"success\"";
             return Ok(response);
@@ -88,9 +88,15 @@ namespace ReactApp1.Server.Controllers
             }
 
             // Генерация JWT-токена
-            var token = GenerateJwtToken(login.Email);
+            var token = GenerateJwtToken(login.Email,user.Id);
             user.JWT = token;
+            user_id_tmp = user.Id;
             _db.users.Update(user);
+                        var lQuery = new LastQuery
+            {
+                User_ID = user.Id
+            };
+            _db.last_query.Add(lQuery);
             await _db.SaveChangesAsync();
 
 
@@ -166,14 +172,13 @@ namespace ReactApp1.Server.Controllers
 
 
         [HttpPost("save-query")]
-        public async Task<IActionResult> SaveQuery(string query)
+        public async Task<IActionResult> SaveQuery([FromBody] QueryStringModel query)
         {
             try
             {
-                var userIdClaim = User.FindFirst("UserId")?.Value; //получаем ID из claims
-                var user = _db.last_query.SingleOrDefault(u => u.Id.ToString() == userIdClaim); // иещм соответствующего пользователя в LastQuery
+                var user = _db.last_query.SingleOrDefault(u => u.User_ID == user_id_tmp); // иещм соответствующего пользователя в LastQuery
 
-                user.Query = query;
+                user.Query = query.Query;
                 _db.last_query.Update(user);
                 await _db.SaveChangesAsync();
                 return Ok();
@@ -184,7 +189,7 @@ namespace ReactApp1.Server.Controllers
             }
         }
 
-        private string GenerateJwtToken(string email)
+        private string GenerateJwtToken(string email,int userID)
         {
             var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:Key"]!));
             var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
@@ -193,8 +198,11 @@ namespace ReactApp1.Server.Controllers
             var claims = new[]
             {
                 new Claim(ClaimTypes.Email, email),
+                new Claim("userid",userID.ToString()),
                 new Claim(JwtRegisteredClaimNames.Exp,new DateTimeOffset(expiryDate).ToUnixTimeSeconds().ToString(), ClaimValueTypes.Integer64)
             };
+
+            ClaimsIdentity id = new ClaimsIdentity(claims);
 
             var token = new JwtSecurityToken(
                 issuer: _config["Jwt:Issuer"],

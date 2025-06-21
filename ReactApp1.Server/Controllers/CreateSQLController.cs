@@ -20,7 +20,6 @@ namespace ReactApp1.Server.Controllers
                 return BadRequest("Wrong query model -> need SELECT");
             }
 
-
             if (queryModel.Select != null)//внутри селекта могут быть AVG COUNT и также их название по типу COUNT(*) as count_c
             {
                 SQL += $"Select {queryModel.Select} from {queryModel.Name}";
@@ -30,12 +29,12 @@ namespace ReactApp1.Server.Controllers
             if (queryModel.Join.Item1 != null && queryModel.Join.Item2 != null && queryModel.Join.Item3 == null && queryModel.Join.Item4 == null)
             {
                 //item1 - тип (cross, inner...)   item2 - название таблицы
-                SQL += $"{queryModel.Join.Item1} {queryModel.Join.Item2}";//это если cross join, в других есть условие
+                SQL += $"{queryModel.Join.Item1} JOIN {queryModel.Join.Item2}";//это если cross join, в других есть условие
             }
             else if (queryModel.Join.Item3 != null && queryModel.Join.Item4 != null)
             {
                 //item1 - тип (cross, inner...)   item2 - название таблицы   item3 - названия столбца от которого тянут связь   item4 - название столбца к которому тянут свзяь
-                SQL += $"{queryModel.Join.Item1} {queryModel.Join.Item2} on {queryModel.Join.Item3} = {queryModel.Join.Item4}";
+                SQL += $"{queryModel.Join.Item1} JOIN {queryModel.Join.Item2} on {queryModel.Join.Item3} = {queryModel.Join.Item4}";
             }
 
 
