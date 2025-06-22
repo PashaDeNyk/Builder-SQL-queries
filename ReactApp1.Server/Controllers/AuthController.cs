@@ -55,8 +55,6 @@ namespace ReactApp1.Server.Controllers
 
             };
 
-
-
             _db.users.Add(user);
             _db.SaveChanges();
             response += "\"success\"";

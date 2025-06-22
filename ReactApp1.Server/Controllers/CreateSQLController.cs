@@ -11,11 +11,12 @@ namespace ReactApp1.Server.Controllers
     [Route("api")]
     public class CreateSQLController : Controller
     {
+        bool error = false;
         [HttpPost("create-query")]
         public async Task<IActionResult> CreateSQL([FromBody] QueryModel queryModel)//ОСНОВНАЯ ПРОБЛЕМА С ИСПОЛЬЗОВАНИЕМ LIST
         {
             string SQL = "";
-
+            error = false;
             if (queryModel.Select == null) //без SELECT ничего не получится
             {
                 return BadRequest("Wrong query model -> need SELECT");
@@ -65,6 +66,10 @@ namespace ReactApp1.Server.Controllers
             }
             SQL += ";";//необязательно
             var queryResult = ExecQuery(SQL);
+            if (error)
+            {
+                return BadRequest(queryResult);
+            }
             return Ok(new { QueryString = SQL, QueryResult = queryResult });//нужно возвращать два элемента
         }
 
@@ -128,56 +133,63 @@ namespace ReactApp1.Server.Controllers
 
         public string ExecQuery(string query)
         {
-            var result = new
-            {
-                tables = new List<object>()
-            };
-
-            var connectionString = ConnectionString.connectionString;
-            var tableData = new
-            {
-                name = "QueryResult",
-                columns = new List<object>(),
-                data = new List<Dictionary<string, object>>()
-            };
-
-            using (var connection = new NpgsqlConnection(connectionString))
-            {
-                connection.Open();
-                using (var command = new NpgsqlCommand(query, connection))
-                using (var reader = command.ExecuteReader())
+            try {
+                var result = new
                 {
-                    // Получаем названия столбцов
-                    var columnNames = new List<string>();
-                    for (int i = 0; i < reader.FieldCount; i++)
-                    {
-                        columnNames.Add(reader.GetName(i));
-                        tableData.columns.Add(new { name = reader.GetName(i) });
-                    }
+                    tables = new List<object>()
+                };
 
-                    // Читаем данные
-                    while (reader.Read())
+                var connectionString = ConnectionString.connectionString;
+                var tableData = new
+                {
+                    name = "QueryResult",
+                    columns = new List<object>(),
+                    data = new List<Dictionary<string, object>>()
+                };
+
+                using (var connection = new NpgsqlConnection(connectionString))
+                {
+                    connection.Open();
+                    using (var command = new NpgsqlCommand(query, connection))
+                    using (var reader = command.ExecuteReader())
                     {
-                        var row = new Dictionary<string, object>();
+                        // Получаем названия столбцов
+                        var columnNames = new List<string>();
                         for (int i = 0; i < reader.FieldCount; i++)
                         {
-                            row[columnNames[i]] = reader.IsDBNull(i) ? null : reader.GetValue(i);
+                            columnNames.Add(reader.GetName(i));
+                            tableData.columns.Add(new { name = reader.GetName(i) });
                         }
-                        tableData.data.Add(row);
+
+                        // Читаем данные
+                        while (reader.Read())
+                        {
+                            var row = new Dictionary<string, object>();
+                            for (int i = 0; i < reader.FieldCount; i++)
+                            {
+                                row[columnNames[i]] = reader.IsDBNull(i) ? null : reader.GetValue(i);
+                            }
+                            tableData.data.Add(row);
+                        }
                     }
                 }
+
+                result.tables.Add(tableData);
+
+                // Сериализуем в JSON с настройками
+                var options = new JsonSerializerOptions
+                {
+                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                    WriteIndented = false // Для компактного вывода
+                };
+
+                return JsonSerializer.Serialize(result, options);
             }
-
-            result.tables.Add(tableData);
-
-            // Сериализуем в JSON с настройками
-            var options = new JsonSerializerOptions
+            catch (Exception ex)
             {
-                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-                WriteIndented = false // Для компактного вывода
-            };
-
-            return JsonSerializer.Serialize(result, options);
+                error = true;
+                return (ex.Message);
+            }
         }
 
     }
