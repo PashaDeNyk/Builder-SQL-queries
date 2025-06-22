@@ -342,6 +342,8 @@ const Workspace = () => {
 
                         setLastQueryResult(data);
                         setResultColumns(columns);
+                        console.log('setLastQueryResult', data);
+                        console.log('setResultColumns', columns);
                     }
                 } catch (parseError) {
                     console.error("JSON parse error:", parseError);
@@ -522,7 +524,7 @@ const Workspace = () => {
         try {
             console.log('try');
             await generateQuery();
-            executeQuery();
+            // executeQuery();
         } catch (error) {
             console.error("Error executing query:", error);
         }
