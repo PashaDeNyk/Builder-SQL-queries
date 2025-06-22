@@ -46,7 +46,7 @@ namespace ReactApp1.Server.Controllers
 
             if (queryModel.GroupBy != null)
             {
-                SQL += $" Groupby {queryModel.GroupBy}";
+                SQL += $" Group by {queryModel.GroupBy}";
             }
 
             if (queryModel.Having.Item1 != null)
@@ -56,11 +56,11 @@ namespace ReactApp1.Server.Controllers
 
             if (queryModel.OrderBy.Item1 != null && queryModel.OrderBy.Item3 == null)
             {
-                SQL += $" OrderBy {queryModel.OrderBy.Item1} {queryModel.OrderBy.Item2}";
+                SQL += $" Order By {queryModel.OrderBy.Item1} {queryModel.OrderBy.Item2}";
             }
             else if (queryModel.OrderBy.Item1 != null && queryModel.OrderBy.Item3 != null)
             {
-                SQL += $" OrderBy {queryModel.OrderBy.Item1} {queryModel.OrderBy.Item2} {queryModel.OrderBy.Item3}";
+                SQL += $" Order By {queryModel.OrderBy.Item1} {queryModel.OrderBy.Item2} {queryModel.OrderBy.Item3}";
             }
             SQL += ";";//необязательно
             var queryResult = ExecQuery(SQL);
