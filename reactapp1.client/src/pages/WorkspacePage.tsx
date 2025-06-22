@@ -265,7 +265,7 @@ const Workspace = () => {
                 const selectedFields = fields.filter(f => !f.includes(' AS '));
                 console.log(selectedFields);
                 if (selectedFields.length > 1) {
-                    fil = selectedFields;
+                    fil = groupByFields;
                 }
             }
 
@@ -410,7 +410,7 @@ const Workspace = () => {
             const selectedFields = fields.filter(f => !f.includes(' AS '));
             console.log(selectedFields);
             if (selectedFields.length > 1) {
-                fields = selectedFields;
+                fields = groupByFields;
             }
         }
 
