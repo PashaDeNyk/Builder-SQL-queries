@@ -52,14 +52,12 @@ namespace ReactApp1.Server.Controllers
             {
                 Email = register.Email,
                 Password = passwordHash
-            
+
             };
 
-     
+
 
             _db.users.Add(user);
-            _db.SaveChanges();
-
             _db.SaveChanges();
             response += "\"success\"";
             return Ok(response);
@@ -88,20 +86,32 @@ namespace ReactApp1.Server.Controllers
             }
 
             // Генерация JWT-токена
-            var token = GenerateJwtToken(login.Email,user.Id);
+            var token = GenerateJwtToken(login.Email, user.Id);
             user.JWT = token;
             user_id_tmp = user.Id;
             _db.users.Update(user);
-                        var lQuery = new LastQuery
+
+            //проверка что у пользователя существует такая запись
+            //если нет, то создаёт новую
+            //иначе находить запись и отправлять клииенту
+            var last_query_string = "";
+            var l_query = _db.last_query.SingleOrDefault(l => l.User_ID == user.Id);//находим соответствующего пользователя
+            if (l_query != null)//если пользователь найден
             {
-                User_ID = user.Id
-            };
-            _db.last_query.Add(lQuery);
+                last_query_string = l_query.Query;//записываем сохранённый запроc
+            }
+            else
+            {
+                var lQuery = new LastQuery
+                {
+                    User_ID = user.Id
+                };
+                _db.last_query.Add(lQuery);
+            }
             await _db.SaveChangesAsync();
-
-
             response += $"\"success\" \"token\": {token}";
             return Ok(response);
+            //return Ok(new { Response = response, Query = last_query_string });
         }
 
         [HttpPost("logout")]
@@ -189,7 +199,7 @@ namespace ReactApp1.Server.Controllers
             }
         }
 
-        private string GenerateJwtToken(string email,int userID)
+        private string GenerateJwtToken(string email, int userID)
         {
             var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:Key"]!));
             var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
