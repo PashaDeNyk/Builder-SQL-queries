@@ -192,12 +192,19 @@ const Workspace = () => {
 
             if (typeof res.data === 'string') {
                 try {
-                    let fixedJson = res.data.replace(/\\"/g, '"');
+                    let fixedJson = res.data;
+
+                    // Удаляем хвостовые запятые перед закрывающими скобками объектов и массивов
                     fixedJson = fixedJson.replace(/,\s*}/g, '}');
                     fixedJson = fixedJson.replace(/,\s*]/g, ']');
-                    fixedJson = fixedJson.replace(/,(\s*})/g, '$1');
 
-                    if (!fixedJson.startsWith('{')) {
+                    // Экранируем переносы строк внутри строк (если есть)
+                    // Можно заменить реальные переносы строк на \n, если они встречаются внутри строк
+                    fixedJson = fixedJson.replace(/\\n/g, '\\n'); // пример, если в строках есть \n
+                    fixedJson = fixedJson.replace(/\r?\n/g, '\\n'); // заменяем реальные переносы строк на \n
+
+                    // Если строка не начинается с {, добавляем
+                    if (!fixedJson.trim().startsWith('{')) {
                         fixedJson = `{${fixedJson}}`;
                     }
 
@@ -219,6 +226,7 @@ const Workspace = () => {
                     }
                 } catch (parseError) {
                     console.error("JSON parse error:", parseError);
+                    console.error("Problematic JSON string:", res.data);
                 }
             }
         } catch (error) {
@@ -546,6 +554,9 @@ const Workspace = () => {
                             nodeTypes={nodeTypes}
                             edgeTypes={edgeTypes}
                             fitView
+                            minZoom={0.1}  // Добавлено: позволяет сильнее уменьшать масштаб
+                            maxZoom={2}    // Добавлено: ограничивает максимальное увеличение
+                            defaultViewport={{ x: 0, y: 0, zoom: 0.8 }}
                         >
                             <Background color="#374151" gap={16} />
                             <Controls className="bg-gray-800 rounded border border-gray-700 [&>button]:bg-gray-700 [&>button]:text-gray-200" />
