@@ -22,6 +22,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import { loadTablesFromDB } from "../api/db";
 import api from "../api/client";
 import QueryConfigurator from "../components/panels/QueryConfigurator";
+import { removeToken } from "../api/auth";
+import { useNavigate } from "react-router-dom";
 
 const Workspace = () => {
     const queryClient = useQueryClient();
@@ -46,6 +48,8 @@ const Workspace = () => {
 
 
     const queryTables = queryClient.getQueryData<Table[]>(["userTables"]);
+
+    const navigate = useNavigate();
 
     useEffect(() => {
         const loadTables = async () => {
@@ -110,10 +114,10 @@ const Workspace = () => {
 
     const confirmJoinType = useCallback(async (type: JoinType) => {
         const conn = joinTypeModal.connection;
-        if (!conn?.source || !conn?.target) return;
+        if (!conn?.sourceHandle || !conn?.targetHandle) return;
 
-        const [sourceTable, sourceColumn] = conn.source.split("|");
-        const [targetTable, targetColumn] = conn.target.split("|");
+        const [sourceTable, sourceColumn] = conn.sourceHandle.split("|");
+        const [targetTable, targetColumn] = conn.targetHandle.split("|");
 
         try {
             setJoins(prev => [...prev, {
@@ -121,20 +125,26 @@ const Workspace = () => {
                 leftColumn: sourceColumn,
                 rightTable: targetTable,
                 rightColumn: targetColumn,
-                type: type.toUpperCase(), // Сохраняем тип в верхнем регистре
+                type: type.toUpperCase(),
             }]);
 
-            setEdges(eds => addEdge({
-                ...conn,
-                data: { type },
-                type: "custom",
-            }, eds));
+            setEdges(eds => addEdge(
+                {
+                    ...conn,
+                    sourceHandle: conn.sourceHandle,
+                    targetHandle: conn.targetHandle,
+                    data: { type },
+                    type: "custom",
+                },
+                eds
+            ));
         } catch (error) {
             alert('Ошибка при создании соединения');
         } finally {
             setJoinTypeModal({ visible: false, connection: null });
         }
     }, [joinTypeModal.connection, setEdges, setJoins]);
+
 
     const readOneTable = async (table: string) => {
         try {
@@ -176,6 +186,18 @@ const Workspace = () => {
             console.error("API error:", error);
         }
     };
+
+    const logout = async () => {
+        try {
+            const res = await api.post('/logout');
+            if (!res) throw res;
+            console.log(res.data)
+            navigate('/login');
+            removeToken();
+        } catch (error) {
+            console.log(error);
+        }
+    }
 
     const throwQuery = async (tables: string[], fields: any[]) => {
         try {
@@ -236,13 +258,13 @@ const Workspace = () => {
             } : { Item1: null, Item2: null, Item3: null };
 
             const payload = {
-                    Name: mainTable, // Только одна таблица
-                    Select: fields.join(', '),
-                    Join: joinPayload,
-                    Where: whereConditionsPayload,
-                    OrderBy: orderByPayload,
-                    Having: havingConditionsPayload,
-                    GroupBy: groupByPayload
+                Name: mainTable, // Только одна таблица
+                Select: fields.join(', '),
+                Join: joinPayload,
+                Where: whereConditionsPayload,
+                OrderBy: orderByPayload,
+                Having: havingConditionsPayload,
+                GroupBy: groupByPayload
             };
 
             const res = await api.post('/create-query', payload);
@@ -251,11 +273,20 @@ const Workspace = () => {
             // Обработка ответа
             if (typeof res.data.queryResult === 'string') {
                 try {
-                    let fixedJson = res.data.replace(/\\"/g, '"');
-                    fixedJson = fixedJson.replace(/,\s*}/g, '}');
-                    fixedJson = fixedJson.replace(/,\s*]/g, ']');
-                    fixedJson = fixedJson.replace(/,(\s*})/g, '$1');
+                    // Удаляем все управляющие символы перед парсингом
+                    let fixedJson = res.data.queryResult
+                        .replace(/\\"/g, '"')
+                        .replace(/\n/g, ' ') // Заменяем символы новой строки на пробелы
+                        .replace(/\r/g, ' ') // Заменяем возврат каретки на пробелы
+                        .replace(/\t/g, ' ') // Заменяем табуляцию на пробелы
+                        .replace(/,\s*}/g, '}')
+                        .replace(/,\s*]/g, ']')
+                        .replace(/,(\s*})/g, '$1');
 
+                    // Удаляем лишние запятые в конце массивов/объектов
+                    fixedJson = fixedJson.replace(/,\s*([}\]])/g, '$1');
+
+                    // Оборачиваем в фигурные скобки, если нужно
                     if (!fixedJson.startsWith('{')) {
                         fixedJson = `{${fixedJson}}`;
                     }
@@ -268,7 +299,10 @@ const Workspace = () => {
                         const data = tableData.data.map((item: any) => {
                             const flatItem: Record<string, any> = {};
                             Object.entries(item).forEach(([key, value]) => {
-                                flatItem[key] = value;
+                                // Очищаем значения от лишних пробелов и переносов строк
+                                flatItem[key] = typeof value === 'string'
+                                    ? value.trim().replace(/\s+/g, ' ')
+                                    : value;
                             });
                             return flatItem;
                         });
@@ -278,6 +312,7 @@ const Workspace = () => {
                     }
                 } catch (parseError) {
                     console.error("JSON parse error:", parseError);
+                    console.error("Problematic JSON string:", res.data.queryResult);
                 }
             }
         } catch (error) {
@@ -463,7 +498,7 @@ const Workspace = () => {
             />
             <div className="flex flex-col xl:flex-row h-scr bg-gray-900">
                 <div className="w-full xl:w-64 bg-gray-800 border-r border-gray-700 z-10">
-                    <Sidebar availableTables={availableTables} />
+                    <Sidebar availableTables={availableTables} onLogout={() => logout()} />
                 </div>
 
                 <WorkspaceDropArea onDropItem={handleDropItem} className="flex-1 relative">

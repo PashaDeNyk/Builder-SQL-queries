@@ -33,7 +33,6 @@ export default function AuthPage({ isLogin = true }: IProps) {
             if (result.status === 'success') {
                 if (isLogin) {
                     if (result.token) {
-                        localStorage.setItem('token', result.token);
                         navigate('/connect');
                     }
                 } else {
