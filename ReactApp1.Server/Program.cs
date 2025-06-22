@@ -14,7 +14,6 @@ namespace ReactApp1.Server
         public static void Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
-
             //Подключение к бд Users
             builder.Services.AddDbContext<AppDbContext>(options =>
             options.UseNpgsql(builder.Configuration.GetConnectionString("DbUsersConnection")));
