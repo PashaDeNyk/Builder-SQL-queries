@@ -42,6 +42,7 @@ const Workspace = () => {
     const [havingConditions, setHavingConditions] = useState<Condition[]>([]);
     const [resultColumns, setResultColumns] = useState<string[]>([]);
     const [orderByFields, setOrderByFields] = useState<{ column: string; direction: 'ASC' | 'DESC' }[]>([]);
+    const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
     const [savedTables, setSavedTables] = useState<any>(null);
     const [savedQueries, setSavedQueries] = useState<string>('');
@@ -93,7 +94,7 @@ const Workspace = () => {
     useEffect(() => {
         const loadTables = async () => {
             const tables = await loadTablesFromDB();
-            
+
             console.log(tables, queryTables);
 
             setSavedTables(tables.tables);
@@ -184,7 +185,6 @@ const Workspace = () => {
         }
     }, [joinTypeModal.connection, setEdges, setJoins]);
 
-
     const readOneTable = async (table: string) => {
         try {
             const payload = { query: `select * from ${table};` };
@@ -199,9 +199,8 @@ const Workspace = () => {
                     fixedJson = fixedJson.replace(/,\s*]/g, ']');
 
                     // Экранируем переносы строк внутри строк (если есть)
-                    // Можно заменить реальные переносы строк на \n, если они встречаются внутри строк
-                    fixedJson = fixedJson.replace(/\\n/g, '\\n'); // пример, если в строках есть \n
-                    fixedJson = fixedJson.replace(/\r?\n/g, '\\n'); // заменяем реальные переносы строк на \n
+                    fixedJson = fixedJson.replace(/\\n/g, '\\n');
+                    fixedJson = fixedJson.replace(/\r?\n/g, '\\n');
 
                     // Если строка не начинается с {, добавляем
                     if (!fixedJson.trim().startsWith('{')) {
@@ -223,14 +222,21 @@ const Workspace = () => {
 
                         setLastQueryResult(data);
                         setResultColumns(columns);
+                        setErrorMessage(null);
+                    } else {
+                        setLastQueryResult([]);
+                        setResultColumns([]);
+                        setErrorMessage("Query executed successfully but returned no results");
                     }
                 } catch (parseError) {
                     console.error("JSON parse error:", parseError);
                     console.error("Problematic JSON string:", res.data);
+                    setErrorMessage("Error parsing query results");
                 }
             }
         } catch (error) {
             console.error("API error:", error);
+            setErrorMessage("Error executing query: " + (error as Error).message);
         }
     };
 
@@ -248,6 +254,21 @@ const Workspace = () => {
 
     const throwQuery = async (tables: string[], fields: any[]) => {
         try {
+            // Validate HAVING without GROUP BY
+            if (havingConditions.length > 0 && groupByFields.length === 0) {
+                setErrorMessage("HAVING clause requires a GROUP BY clause");
+                return;
+            }
+            let fil = fields;
+
+            if (groupByFields.length > 0) {
+                const selectedFields = fields.filter(f => !f.includes(' AS '));
+                console.log(selectedFields);
+                if (selectedFields.length > 1) {
+                    fil = selectedFields;
+                }
+            }
+
             const mainTable = tables[0];
 
             let joinPayload = { Item1: null, Item2: null, Item3: null, Item4: null };
@@ -295,9 +316,10 @@ const Workspace = () => {
                 Item3: null
             } : { Item1: null, Item2: null, Item3: null };
 
+            console.log(fil);
             const payload = {
                 Name: mainTable,
-                Select: fields.join(', '),
+                Select: fil.join(', '),
                 Join: joinPayload,
                 Where: whereConditionsPayload,
                 OrderBy: orderByPayload,
@@ -342,31 +364,55 @@ const Workspace = () => {
 
                         setLastQueryResult(data);
                         setResultColumns(columns);
+                        setErrorMessage(null);
                         console.log('setLastQueryResult', data);
                         console.log('setResultColumns', columns);
+                    } else {
+                        setLastQueryResult([]);
+                        setResultColumns([]);
+                        setErrorMessage("Query executed successfully but returned no results");
                     }
                 } catch (parseError) {
                     console.error("JSON parse error:", parseError);
                     console.error("Problematic JSON string:", res.data.queryResult);
+                    setErrorMessage("Error parsing query results");
                 }
             }
         } catch (error) {
             console.error(error);
+            setErrorMessage("Error executing query: " + (error as Error).message);
         }
     }
 
     const generateQuery = async () => {
-        
+        setErrorMessage(null);
+
         if (nodes.length === 0) {
             setGeneratedQuery("-- Add tables to workspace --");
+            setErrorMessage("No tables selected");
+            return "";
+        }
+
+        // Validate HAVING without GROUP BY
+        if (havingConditions.length > 0 && groupByFields.length === 0) {
+            setErrorMessage("HAVING clause requires a GROUP BY clause");
             return "";
         }
 
         const tables = nodes.map((n: any) => n.data.name);
-        const fields = [
+        let fields = [
             ...nodes.flatMap((n: any) => n.data.columns.map((c: any) => `${n.data.name}.${c.name}`)),
             ...calculatedFields.map((f) => `${f.expression} AS ${f.alias}`),
         ];
+
+        // Validate GROUP BY - only one column selected
+        if (groupByFields.length > 0) {
+            const selectedFields = fields.filter(f => !f.includes(' AS '));
+            console.log(selectedFields);
+            if (selectedFields.length > 1) {
+                fields = selectedFields;
+            }
+        }
 
         const whereClause = whereConditions.length > 0
             ? `WHERE ${whereConditions.map((c) => `${c.column} ${c.operator} ${c.value}`).join(" AND ")}`
@@ -375,7 +421,7 @@ const Workspace = () => {
         const groupByClause = groupByFields.length > 0
             ? `GROUP BY ${groupByFields.join(", ")}`
             : "";
-        console.log(havingConditions);
+
         const havingClause = havingConditions.length > 0
             ? `HAVING ${havingConditions.map((c) => `${c.column} ${c.operator} ${c.value}`).join(" AND ")}`
             : "";
@@ -423,6 +469,10 @@ const Workspace = () => {
     };
 
     const handleAddHaving = () => {
+        if (groupByFields.length === 0) {
+            setErrorMessage("You must add GROUP BY before adding HAVING");
+            return;
+        }
         setHavingConditions([...havingConditions, { column: '', operator: '', value: '' }]);
     };
 
@@ -452,6 +502,11 @@ const Workspace = () => {
         const updated = [...groupByFields];
         updated.splice(index, 1);
         setGroupByFields(updated);
+
+        // If we remove all GROUP BY fields but have HAVING conditions
+        if (updated.length === 0 && havingConditions.length > 0) {
+            setErrorMessage("HAVING clause requires a GROUP BY clause");
+        }
     };
 
     const handleRemoveHaving = (index) => {
@@ -527,6 +582,7 @@ const Workspace = () => {
             // executeQuery();
         } catch (error) {
             console.error("Error executing query:", error);
+            setErrorMessage("Error executing query: " + (error as Error).message);
         }
     }, [generateQuery, executeQuery]);
 
@@ -556,8 +612,8 @@ const Workspace = () => {
                             nodeTypes={nodeTypes}
                             edgeTypes={edgeTypes}
                             fitView
-                            minZoom={0.1}  // Добавлено: позволяет сильнее уменьшать масштаб
-                            maxZoom={2}    // Добавлено: ограничивает максимальное увеличение
+                            minZoom={0.1}
+                            maxZoom={2}
                             defaultViewport={{ x: 0, y: 0, zoom: 0.8 }}
                         >
                             <Background color="#374151" gap={16} />
@@ -574,6 +630,11 @@ const Workspace = () => {
                             >
                                 Execute Query
                             </button>
+                            {errorMessage && (
+                                <div className="mt-2 p-2 bg-red-900 text-red-100 rounded">
+                                    {errorMessage}
+                                </div>
+                            )}
                         </div>
                         <div className="query-configurator">
                             <h2>GROUP BY</h2>
@@ -599,7 +660,7 @@ const Workspace = () => {
                                 {whereConditions.map((condition, index) => (
                                     <div key={index}>
                                         <select
-                                            
+
                                             value={condition.column}
                                             onChange={(e) => handleWhereChange(index, 'column', e.target.value)}
                                         >
@@ -688,8 +749,8 @@ const Workspace = () => {
                                         ))}
                                     </select>
                                     <select
-                                        value={order.order}
-                                        onChange={(e) => handleOrderByChange(index, 'order', e.target.value)}
+                                        value={order.direction}
+                                        onChange={(e) => handleOrderByChange(index, 'direction', e.target.value as 'ASC' | 'DESC')}
                                     >
                                         <option className="bg-gray-700 text-white border border-gray-600 rounded p-1 flex-1" value="ASC">ASC</option>
                                         <option className="bg-gray-700 text-white border border-gray-600 rounded p-1 flex-1" value="DESC">DESC</option>
@@ -701,7 +762,7 @@ const Workspace = () => {
                         </div>
                     </div>
                 </WorkspaceDropArea>
-              
+
 
             </div>
             <div className="w-full w-f xl:w-96 bg-gray-800 border-l border-gray-700 overflow-y-auto p-4 z-10 xl:h-full xl:order-none order-last max-xl:h-96">
@@ -717,8 +778,13 @@ const Workspace = () => {
                     Save Query
                 </button>
                 <h3 className="text-lg font-bold mb-4 text-blue-400">Results</h3>
+                {errorMessage && (
+                    <div className="mb-4 p-2 bg-red-900 text-red-100 rounded">
+                        {errorMessage}
+                    </div>
+                )}
                 <div className="p-4 w-full overflow-x-auto">
-                   
+
                     {lastQueryResult.length > 0 ? (
                         <table className="min-w-full bg-gray-800 text-white border border-gray-700">
                             <thead>
@@ -743,13 +809,12 @@ const Workspace = () => {
                             </tbody>
                         </table>
                     ) : (
-                        <p className="text-gray-400">Нет данных для отображения</p>
+                        <p className="text-gray-400">No data to display</p>
                     )}
                 </div>
             </div>
-           
-        </DndProvider>
 
+        </DndProvider>
     );
 };
 
