@@ -3,6 +3,7 @@ using Npgsql;
 using ReactApp1.Server.Models;
 using System.Globalization;
 using System.Threading.Tasks;
+using System.Text.Json;
 
 namespace ReactApp1.Server.Controllers
 {
@@ -67,62 +68,117 @@ namespace ReactApp1.Server.Controllers
             return Ok(new { QueryString = SQL, QueryResult = queryResult });//нужно возвращать два элемента
         }
 
-        public string ExecQuery(string query)//работает корректно
+        //public string ExecQuery(string query)//работает корректно
+        //{
+        //    bool check = false;
+
+        //    string json = "\"tables\":[";
+        //    json += "{" + $"\"name\":\"QueryResult\",\"columns\":[";
+
+        //    var result = new List<Dictionary<string, object>>();
+        //    var connectionString = ConnectionString.connectionString;
+        //    List<string> columnName = new List<string>();
+
+        //    using (var connection = new NpgsqlConnection(connectionString))
+        //    {
+        //        connection.Open();
+        //        using (var command = new NpgsqlCommand(query, connection))
+        //        {
+        //            using (var reader = command.ExecuteReader())
+        //            {
+        //                while (reader.Read())
+        //                {
+        //                    var row = new Dictionary<string, object>();
+        //                    if (!check)
+        //                    {
+        //                        check = true;
+        //                        for (int i = 0; i < reader.FieldCount; i++)
+        //                        {
+        //                            columnName.Add(reader.GetName(i));
+        //                            if (i+1==reader.FieldCount)
+        //                            {
+        //                                json += "{" + $"\"name\":\"{columnName[i]}\"" + "}";
+        //                            }
+        //                            else
+        //                                json += "{" + $"\"name\":\"{columnName[i]}\"" + "},";
+        //                        }
+        //                        json += "],\"data\":[";
+
+        //                    }
+        //                    json += "{";
+        //                    for (int i = 0; i < reader.FieldCount; i++)
+        //                    {
+        //                        object value = reader.IsDBNull(i) ? null : reader.GetValue(i);
+        //                        if (i + 1 == reader.FieldCount)
+        //                        {
+        //                            json += $"\"{columnName[i]}\":\"{value}\"";
+        //                        }
+        //                        else
+        //                            json += $"\"{columnName[i]}\":\"{value}\",";
+
+        //                    }
+        //                    json += "},";
+        //                }
+        //            }
+        //            json += "],},]";
+        //        }
+        //    }
+        //    return json;
+        //}
+
+        public string ExecQuery(string query)
         {
-            bool check = false;
+            var result = new
+            {
+                tables = new List<object>()
+            };
 
-            string json = "\"tables\":[";
-            json += "{" + $"\"name\":\"QueryResult\",\"columns\":[";
-
-            var result = new List<Dictionary<string, object>>();
             var connectionString = ConnectionString.connectionString;
-            List<string> columnName = new List<string>();
+            var tableData = new
+            {
+                name = "QueryResult",
+                columns = new List<object>(),
+                data = new List<Dictionary<string, object>>()
+            };
 
             using (var connection = new NpgsqlConnection(connectionString))
             {
                 connection.Open();
                 using (var command = new NpgsqlCommand(query, connection))
+                using (var reader = command.ExecuteReader())
                 {
-                    using (var reader = command.ExecuteReader())
+                    // Получаем названия столбцов
+                    var columnNames = new List<string>();
+                    for (int i = 0; i < reader.FieldCount; i++)
                     {
-                        while (reader.Read())
-                        {
-                            var row = new Dictionary<string, object>();
-                            if (!check)
-                            {
-                                check = true;
-                                for (int i = 0; i < reader.FieldCount; i++)
-                                {
-                                    columnName.Add(reader.GetName(i));
-                                    if (i+1==reader.FieldCount)
-                                    {
-                                        json += "{" + $"\"name\":\"{columnName[i]}\"" + "}";
-                                    }
-                                    else
-                                        json += "{" + $"\"name\":\"{columnName[i]}\"" + "},";
-                                }
-                                json += "],\"data\":[";
-
-                            }
-                            json += "{";
-                            for (int i = 0; i < reader.FieldCount; i++)
-                            {
-                                object value = reader.IsDBNull(i) ? null : reader.GetValue(i);
-                                if (i + 1 == reader.FieldCount)
-                                {
-                                    json += $"\"{columnName[i]}\":\"{value}\"";
-                                }
-                                else
-                                    json += $"\"{columnName[i]}\":\"{value}\",";
-
-                            }
-                            json += "},";
-                        }
+                        columnNames.Add(reader.GetName(i));
+                        tableData.columns.Add(new { name = reader.GetName(i) });
                     }
-                    json += "],},]";
+
+                    // Читаем данные
+                    while (reader.Read())
+                    {
+                        var row = new Dictionary<string, object>();
+                        for (int i = 0; i < reader.FieldCount; i++)
+                        {
+                            row[columnNames[i]] = reader.IsDBNull(i) ? null : reader.GetValue(i);
+                        }
+                        tableData.data.Add(row);
+                    }
                 }
             }
-            return json;
+
+            result.tables.Add(tableData);
+
+            // Сериализуем в JSON с настройками
+            var options = new JsonSerializerOptions
+            {
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                WriteIndented = false // Для компактного вывода
+            };
+
+            return JsonSerializer.Serialize(result, options);
         }
+
     }
 }
