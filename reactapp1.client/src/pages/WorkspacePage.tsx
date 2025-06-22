@@ -21,7 +21,6 @@ import JoinTypeModal from "../components/JoinTypeModal";
 import { useQueryClient } from "@tanstack/react-query";
 import { loadTablesFromDB } from "../api/db";
 import api from "../api/client";
-import QueryConfigurator from "../components/panels/QueryConfigurator";
 import { removeToken } from "../api/auth";
 import { useNavigate } from "react-router-dom";
 
@@ -44,8 +43,48 @@ const Workspace = () => {
     const [resultColumns, setResultColumns] = useState<string[]>([]);
     const [orderByFields, setOrderByFields] = useState<{ column: string; direction: 'ASC' | 'DESC' }[]>([]);
 
-    const [savedTables, setSavedTables] = useState<any>(null); // Добавили состояние для сохранения таблиц
+    const [savedTables, setSavedTables] = useState<any>(null);
+    const [savedQueries, setSavedQueries] = useState<string>('');
 
+    const saveCurrentQuery = useCallback(async () => {
+        if (!generatedQuery) return;
+
+        try {
+            const res = await api.post(
+                '/create-file',
+                { query: generatedQuery },
+                { responseType: 'blob' }
+            );
+
+            if (res.data) {
+                const url = window.URL.createObjectURL(new Blob([res.data]));
+
+                const link = document.createElement('a');
+                link.href = url;
+
+                const contentDisposition = res.headers['content-disposition'];
+                let fileName = 'query.sql';
+
+                if (contentDisposition) {
+                    const fileNameMatch = contentDisposition.match(/filename="?(.+)"?/);
+                    if (fileNameMatch && fileNameMatch[1]) {
+                        fileName = fileNameMatch[1];
+                    }
+                }
+
+                link.setAttribute('download', fileName);
+                document.body.appendChild(link);
+
+                link.click();
+
+                link.remove();
+                window.URL.revokeObjectURL(url);
+            }
+        } catch (error) {
+            console.error('Error saving query:', error);
+            alert('Failed to save query as file');
+        }
+    }, [generatedQuery]);
 
     const queryTables = queryClient.getQueryData<Table[]>(["userTables"]);
 
@@ -176,7 +215,7 @@ const Workspace = () => {
                         });
 
                         setLastQueryResult(data);
-                        setResultColumns(columns); // Устанавливаем колонки
+                        setResultColumns(columns);
                     }
                 } catch (parseError) {
                     console.error("JSON parse error:", parseError);
@@ -201,56 +240,47 @@ const Workspace = () => {
 
     const throwQuery = async (tables: string[], fields: any[]) => {
         try {
-            // Основная таблица - всегда первая в массиве
             const mainTable = tables[0];
 
-            // Подготовка JOIN структуры
             let joinPayload = { Item1: null, Item2: null, Item3: null, Item4: null };
 
             if (joins.length > 0) {
-                // Берем первый JOIN (можно расширить для множественных JOIN)
                 const firstJoin = joins[0];
 
                 joinPayload = {
-                    Item1: firstJoin!.type!.toUpperCase(), // Тип JOIN в верхнем регистре
-                    Item2: firstJoin.rightTable,        // Таблица для JOIN
-                    Item3: firstJoin.leftColumn,        // Столбец из основной таблицы
-                    Item4: firstJoin.rightColumn        // Столбец из присоединяемой таблицы
+                    Item1: firstJoin!.type!.toUpperCase(),
+                    Item2: firstJoin.rightTable,
+                    Item3: firstJoin.leftColumn,
+                    Item4: firstJoin.rightColumn
                 };
 
-                // Для CROSS JOIN не указываем столбцы
                 if (firstJoin.type.toUpperCase() === 'CROSS') {
                     joinPayload.Item3 = null;
                     joinPayload.Item4 = null;
                 }
             } else if (tables.length > 1) {
-                // Если нет JOIN, но несколько таблиц - это CROSS JOIN
                 joinPayload = {
                     Item1: 'CROSS',
-                    Item2: tables[1], // Вторая таблица
-                    Item3: null,      // Для CROSS JOIN столбцы не указываются
+                    Item2: tables[1],
+                    Item3: null,
                     Item4: null
                 };
             }
 
-            // Подготовка WHERE условий
             const whereConditionsPayload = whereConditions.length > 0 ? {
                 Item1: whereConditions[0].column,
                 Item2: whereConditions[0].operator,
                 Item3: whereConditions[0].value
             } : { Item1: null, Item2: null, Item3: null };
 
-            // Подготовка GROUP BY
-            const groupByPayload = groupByFields.length > 0 ? groupByFields : null;
+            const groupByPayload = groupByFields.length > 0 ? groupByFields[0] : null;
 
-            // Подготовка HAVING условий
             const havingConditionsPayload = havingConditions.length > 0 ? {
                 Item1: havingConditions[0].column,
                 Item2: havingConditions[0].operator,
                 Item3: havingConditions[0].value
             } : { Item1: null, Item2: null, Item3: null };
 
-            // Подготовка ORDER BY
             const orderByPayload = orderByFields.length > 0 ? {
                 Item1: orderByFields[0].column,
                 Item2: orderByFields[0].direction,
@@ -258,7 +288,7 @@ const Workspace = () => {
             } : { Item1: null, Item2: null, Item3: null };
 
             const payload = {
-                Name: mainTable, // Только одна таблица
+                Name: mainTable,
                 Select: fields.join(', '),
                 Join: joinPayload,
                 Where: whereConditionsPayload,
@@ -270,23 +300,19 @@ const Workspace = () => {
             const res = await api.post('/create-query', payload);
             if (!res) throw res;
 
-            // Обработка ответа
             if (typeof res.data.queryResult === 'string') {
                 try {
-                    // Удаляем все управляющие символы перед парсингом
                     let fixedJson = res.data.queryResult
                         .replace(/\\"/g, '"')
-                        .replace(/\n/g, ' ') // Заменяем символы новой строки на пробелы
-                        .replace(/\r/g, ' ') // Заменяем возврат каретки на пробелы
-                        .replace(/\t/g, ' ') // Заменяем табуляцию на пробелы
+                        .replace(/\n/g, ' ')
+                        .replace(/\r/g, ' ')
+                        .replace(/\t/g, ' ')
                         .replace(/,\s*}/g, '}')
                         .replace(/,\s*]/g, ']')
                         .replace(/,(\s*})/g, '$1');
 
-                    // Удаляем лишние запятые в конце массивов/объектов
                     fixedJson = fixedJson.replace(/,\s*([}\]])/g, '$1');
 
-                    // Оборачиваем в фигурные скобки, если нужно
                     if (!fixedJson.startsWith('{')) {
                         fixedJson = `{${fixedJson}}`;
                     }
@@ -299,7 +325,6 @@ const Workspace = () => {
                         const data = tableData.data.map((item: any) => {
                             const flatItem: Record<string, any> = {};
                             Object.entries(item).forEach(([key, value]) => {
-                                // Очищаем значения от лишних пробелов и переносов строк
                                 flatItem[key] = typeof value === 'string'
                                     ? value.trim().replace(/\s+/g, ' ')
                                     : value;
@@ -388,11 +413,11 @@ const Workspace = () => {
     };
 
     const handleAddHaving = () => {
-        setHavingConditions([...havingConditions, { field: '', operator: '', value: '' }]);
+        setHavingConditions([...havingConditions, { column: '', operator: '', value: '' }]);
     };
 
     const handleAddOrderBy = () => {
-        setOrderByFields([...orderByFields, { field: '', order: 'ASC' }]);
+        setOrderByFields([...orderByFields, { column: '', direction: 'ASC' }]);
     };
 
     const handleGroupByChange = (index, value) => {
@@ -430,12 +455,21 @@ const Workspace = () => {
         updated.splice(index, 1);
         setOrderByFields(updated);
     };
-    const mockResult = [
-        { "user_id": 6 },
-        { "user_id": 7 },
-        { "user_id": 8 },
-        { "user_id": 9 }
-    ];
+    const handleAddWhere = () => {
+        setWhereConditions([...whereConditions, { column: '', operator: '=', value: '' }]);
+    };
+
+    const handleWhereChange = (index: number, key: keyof Condition, value: string) => {
+        const updated = [...whereConditions];
+        updated[index] = { ...updated[index], [key]: value };
+        setWhereConditions(updated);
+    };
+
+    const handleRemoveWhere = (index: number) => {
+        const updated = [...whereConditions];
+        updated.splice(index, 1);
+        setWhereConditions(updated);
+    };
 
     const availableFields = useMemo(() => {
         return nodes.flatMap((node) =>
@@ -520,14 +554,6 @@ const Workspace = () => {
 
                     <div className="absolute top-4 right-4 z-10 w-96 space-y-4">
                         <div>
-                            <h3 className="font-semibold mb-2 text-blue-400">Calculated Fields</h3>
-                            <CalculatedFieldEditor
-                                fields={calculatedFields}
-                                onAdd={(field) => setCalculatedFields((prev) => [...prev, field])}
-                                onRemove={(index) => setCalculatedFields((prev) => prev.filter((_, i) => i !== index))}
-                            />
-                        </div>
-                        <div>
                             <h3 className="font-semibold mb-2 text-blue-400">Query Controls</h3>
                             <button
                                 onClick={handleExecuteQuery}
@@ -544,9 +570,9 @@ const Workspace = () => {
                                         value={field}
                                         onChange={(e) => handleGroupByChange(index, e.target.value)}
                                     >
-                                        <option value="">Choose field</option>
+                                        <option className="bg-gray-700 text-white border border-gray-600 rounded p-1 flex-1" value="">Choose field</option>
                                         {availableFields.map((availableField) => (
-                                            <option key={availableField} value={availableField}>
+                                            <option className="bg-gray-700 text-white border border-gray-600 rounded p-1 flex-1" key={availableField} value={availableField}>
                                                 {availableField}
                                             </option>
                                         ))}
@@ -555,17 +581,58 @@ const Workspace = () => {
                                 </div>
                             ))}
                             <button onClick={handleAddGroupBy}>add GROUP BY</button>
+                            <div>
+                                <h3>WHERE Conditions</h3>
+                                {whereConditions.map((condition, index) => (
+                                    <div key={index}>
+                                        <select
+                                            
+                                            value={condition.column}
+                                            onChange={(e) => handleWhereChange(index, 'column', e.target.value)}
+                                        >
+                                            <option className="bg-gray-700 text-white border border-gray-600 rounded p-1 flex-1" value="">Select Column</option>
+                                            {availableFields.map((field, i) => (
+                                                <option className="bg-gray-700 text-white border border-gray-600 rounded p-1 flex-1" key={i} value={field}>{field}</option>
+                                            ))}
+                                        </select>
+
+                                        <select
+                                            value={condition.operator}
+                                            onChange={(e) => handleWhereChange(index, 'operator', e.target.value)}
+                                        >
+                                            <option className="bg-gray-700 text-white border border-gray-600 rounded p-1 flex-1" value="=">=</option>
+                                            <option className="bg-gray-700 text-white border border-gray-600 rounded p-1 flex-1" value=">">{'>'}</option>
+                                            <option className="bg-gray-700 text-white border border-gray-600 rounded p-1 flex-1" value="<">{'<'}</option>
+                                            <option className="bg-gray-700 text-white border border-gray-600 rounded p-1 flex-1" value="<>">{'<>'}</option>
+                                            <option className="bg-gray-700 text-white border border-gray-600 rounded p-1 flex-1" value="LIKE">LIKE</option>
+                                            <option className="bg-gray-700 text-white border border-gray-600 rounded p-1 flex-1" value="NOT LIKE">NOT LIKE</option>
+                                        </select>
+
+                                        <input
+                                            type="text"
+                                            value={condition.value}
+                                            onChange={(e) => handleWhereChange(index, 'value', e.target.value)}
+                                            placeholder="Value"
+                                        />
+
+                                        <button onClick={() => handleRemoveWhere(index)}>Remove</button>
+                                    </div>
+                                ))}
+
+                                <button onClick={handleAddWhere}>Add WHERE Condition</button>
+                            </div>
+
 
                             <h2>HAVING</h2>
                             {havingConditions.map((condition, index) => (
                                 <div key={index} className="field-row">
                                     <select
-                                        value={condition.field}
-                                        onChange={(e) => handleHavingChange(index, 'field', e.target.value)}
+                                        value={condition.column}
+                                        onChange={(e) => handleHavingChange(index, 'column', e.target.value)}
                                     >
-                                        <option value="">Choose field</option>
+                                        <option className="bg-gray-700 text-white border border-gray-600 rounded p-1 flex-1" value="">Choose field</option>
                                         {availableFields.map((availableField) => (
-                                            <option key={availableField} value={availableField}>
+                                            <option className="bg-gray-700 text-white border border-gray-600 rounded p-1 flex-1" key={availableField} value={availableField}>
                                                 {availableField}
                                             </option>
                                         ))}
@@ -574,13 +641,13 @@ const Workspace = () => {
                                         value={condition.operator}
                                         onChange={(e) => handleHavingChange(index, 'operator', e.target.value)}
                                     >
-                                        <option value="">Operator</option>
-                                        <option value="=">=</option>
-                                        <option value=">">{'>'}</option>
-                                        <option value="<">{'<'}</option>
-                                        <option value=">=">{'>='}</option>
-                                        <option value="<=">{'<='}</option>
-                                        <option value="<>">{'<>'}</option>
+                                        <option className="bg-gray-700 text-white border border-gray-600 rounded p-1 flex-1" value="">Operator</option>
+                                        <option className="bg-gray-700 text-white border border-gray-600 rounded p-1 flex-1" value="=">=</option>
+                                        <option className="bg-gray-700 text-white border border-gray-600 rounded p-1 flex-1" value=">">{'>'}</option>
+                                        <option className="bg-gray-700 text-white border border-gray-600 rounded p-1 flex-1" value="<">{'<'}</option>
+                                        <option className="bg-gray-700 text-white border border-gray-600 rounded p-1 flex-1" value=">=">{'>='}</option>
+                                        <option className="bg-gray-700 text-white border border-gray-600 rounded p-1 flex-1" value="<=">{'<='}</option>
+                                        <option className="bg-gray-700 text-white border border-gray-600 rounded p-1 flex-1" value="<>">{'<>'}</option>
                                     </select>
                                     <input
                                         type="text"
@@ -597,12 +664,12 @@ const Workspace = () => {
                             {orderByFields.map((order, index) => (
                                 <div key={index} className="field-row">
                                     <select
-                                        value={order.field}
-                                        onChange={(e) => handleOrderByChange(index, 'field', e.target.value)}
+                                        value={order.column}
+                                        onChange={(e) => handleOrderByChange(index, 'column', e.target.value)}
                                     >
-                                        <option value="">Choose field</option>
+                                        <option className="bg-gray-700 text-white border border-gray-600 rounded p-1 flex-1" value="">Choose field</option>
                                         {availableFields.map((availableField) => (
-                                            <option key={availableField} value={availableField}>
+                                            <option className="bg-gray-700 text-white border border-gray-600 rounded p-1 flex-1" key={availableField} value={availableField}>
                                                 {availableField}
                                             </option>
                                         ))}
@@ -611,8 +678,8 @@ const Workspace = () => {
                                         value={order.order}
                                         onChange={(e) => handleOrderByChange(index, 'order', e.target.value)}
                                     >
-                                        <option value="ASC">ASC</option>
-                                        <option value="DESC">DESC</option>
+                                        <option className="bg-gray-700 text-white border border-gray-600 rounded p-1 flex-1" value="ASC">ASC</option>
+                                        <option className="bg-gray-700 text-white border border-gray-600 rounded p-1 flex-1" value="DESC">DESC</option>
                                     </select>
                                     <button onClick={() => handleRemoveOrderBy(index)}>Delete</button>
                                 </div>
@@ -629,9 +696,16 @@ const Workspace = () => {
                 <div className="font-mono text-sm bg-gray-900 p-2 rounded mb-4 text-gray-300">
                     {generatedQuery || "-- SQL query will be generated here --"}
                 </div>
+                <button
+                    onClick={saveCurrentQuery}
+                    disabled={!generatedQuery}
+                    className="mb-4 bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed"
+                >
+                    Save Query
+                </button>
                 <h3 className="text-lg font-bold mb-4 text-blue-400">Results</h3>
                 <div className="p-4 w-full overflow-x-auto">
-                    <h2 className="text-lg font-semibold mb-2 text-white">Результат запроса</h2>
+                   
                     {lastQueryResult.length > 0 ? (
                         <table className="min-w-full bg-gray-800 text-white border border-gray-700">
                             <thead>
